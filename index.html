@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>EasyCue - Electron</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="jquery-ui.css">
+    <!-- <link rel="stylesheet" href="spectre.min.css" /> -->
+    <link rel="stylesheet" href="css/custom.css">
+
+    <script>window.$ = window.jQuery = require('./jquery.js');</script>
+    <script src="jquery-ui.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/bootbox.min.js"></script>
+
+    <script src="js/underscore.js"></script>
+
+    <!-- sound library -->
+    <script src="js/howler/howler.js"></script>
+
+    <script type="text/javascript">
+      //define any super-globals here
+      // var numChannels = 48;
+    </script>
+  
+  </head>
+
+  <body>
+  <div class="window">
+  <div class="window-content">
+    <div style="overflow-x: scroll;">
+      <table class="chan_sliders">
+        <tr id="slider_row" style="height: 140px;">
+        </tr>
+        <tr id="input_row">
+        </tr>
+      </table>
+    </div>
+
+    
+
+  <!-- <div class="divider"></div> -->
+    <div class="lx_container">
+      <!-- <div class="lx_scroller"> -->
+        <table id="lx_datagrid" class="table table-striped"  style="width: 1410px;">
+        <thead>
+          <tr>
+            <th class="t_sm">#</th>
+            <th class="t_med">Name</th>
+            <th class="t_lng">Description</th>
+            <th class="t_sm">IN</th>
+            <th class="t_sm">OUT</th>
+            <th class="t_sm">A/F</th>
+            <th class="t_sm">SQ</th>
+          </tr>
+        </thead>
+          <tbody>
+          </tbody>
+      </table>
+      <!-- </div> -->
+  </div>
+
+  <script>
+    //ADD THE SLIDERS AND INPUTS TO THE TABLE ABLOVE
+        // for (var i = 0; i <= numChannels-1; i++) {
+        //   var slider = $('<td>'+(i+1)+'<div data-chan='+(i)+' class="chan_slider"></div></td>');
+        //     $("#slider_row").append(slider);
+        //   var input = $('<td><input data-chan='+i+' class="chan_level" type="number" min="0" max="100"></td>');
+        //     $("#input_row").append(input);
+        //   var lxdata_heading = $('<th class="t_sm">' + (i+1) + '</th>');
+        //     $(".lx_container tr").append(lxdata_heading);
+
+        // }
+
+    </script>
+
+
+<nav class="navbar navbar-default">
+    <ul class="nav navbar-nav">
+        <button id="lx_go_cue" class="btn btn-default navbar-btn" title="LX CUE GO!" data-toggle="tooltip">GO! <span class="glyphicon glyphicon-play" style="color:green;"></span></button>
+        <input id="lx_next_cue"  type="number" min="0" value="1" style="width:50px;">
+      
+      <li class="divider-vertical"></li>
+
+      <li id="lx_add_cue" title="Save as NEW LX Cue" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-plus"></span></a></li>
+      <li id="lx_save_cue" title="Save Active Levels as Cue#" data-toggle="tooltip"><a href="#" style="padding-right: 0px;"><span class="glyphicon glyphicon-floppy-disk"></span></a></li>
+      <input id="lx_save_cue_num" type="number" min="0" value="1" style="width:50px;" title="Save As Cue#" data-toggle="tooltip">
+
+      <li class="divider-vertical"></li>      
+
+      <li id="lx_move_up" title="Move UP" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-arrow-up"></span></a></li>
+      <li id="lx_move_down" title="Move DOWN" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-arrow-down"></span></a></li>
+      <li id="lx_delete" title="Delete Selected LX Cue" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-remove"></span></a></li>
+
+      <li class="divider-vertical"></li>
+      <!-- <button id="testbutton1" class="btn btn-default navbar-btn">test</button> -->
+      <!-- <button id="testbutton2" class="btn btn-default navbar-btn">test2</button> -->
+      <!-- <button id="testbutton3" class="btn btn-default navbar-btn">test3</button> -->
+
+
+   </ul>
+
+   <ul class="nav navbar-nav navbar-right">
+
+      <li class="divider-vertical"></li>
+      <li id="snd_add_cue" title="NEW Sound Cue" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-plus"></span></a></li>
+      <li id="snd_move_up" title="Move UP" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-arrow-up"></span></a></li>
+      <li id="snd_move_down" title="Move DOWN" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-arrow-down"></span></a></li>
+      <li id="snd_delete" title="Delete Selected Sound Cue" data-toggle="tooltip"><a href="#"><span class="glyphicon glyphicon-remove"></span></a></li>
+      <li class="divider-vertical"></li>
+
+
+
+
+      <button id="snd_stop_all" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-stop"></span> Stop All</button>
+      <button id="snd_fade_all" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-sort-by-attributes-alt"></span> Fade All</button>
+      <button id="snd_go_cue" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-volume-up" style="color:#800168;"></span> Play Sound</button>
+      <input id="snd_next_cue"  type="number" min="0" value="0" style="width:50px;">
+   </ul>
+
+</nav>
+
+
+
+  <div class="snd_container">
+      <!-- <div class="snd_scroller"> -->
+        <table id="snd_datagrid" class="table table-striped">
+          <thead>
+            <tr>
+              <th class="t_sm">#</th>
+              <th class="t_sm"></th>
+              <th class="t_lng">Name</th>
+              <th class="t_lng2">Description</th>
+              <th class="t_sm">START</th>
+              <th class="t_sm">IN</th>
+              <th class="t_sm">VOL</th>
+              <th class="t_sm">HOLD</th>
+              <th class="t_sm">OUT</th>
+              <th class="t_sm">END</th>
+              <th class="t_lng2" style="text-align: center !important;">File</th>
+              <th class="t_sm"></th>
+          </tr>
+          </thead>
+          <tbody>
+          </tbody>
+      </table>
+      <!-- </div> -->
+  </div>
+
+
+
+  <footer class="footer">
+      <div class="row">
+        <div id="status-left" class="col-md-4"></div>
+        <div id="status-mid" class="col-md-4" style="text-align: center;"></div>
+        <div id="status-right" class="col-md-4" style="text-align: right;"></div>
+      </div>
+  </footer>
+
+
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="patchwindow" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="patchwindowLabel">DMX Patch</h4>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        Patch the 512 DMX channels to any of the active Sliders.<br>Change the Type to allow the Slider to control different types of instruments.
+        <div id="patch_buttons">
+          <button id="patch_reset" class="btn btn-default">Reset Dimmers 1-1</button>
+          <button id="patch_clear" class="btn btn-default">Clear Patch</button></div>
+        <hr>
+        <div style="height:400px; overflow-y: scroll;">
+        <table id="patchlist">
+          <thead><tr><th>DMX Ch</th><th>Slider</th><th>Type</th><th>&nbsp;</th></tr></thead>
+          <tbody>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="text-align: center;">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-default" id="updatePatch">Update</button>
+        <button type="button" class="btn btn-primary" id="savePatch">Save Patch</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- lxpopup custom attributes popup for lighting channels -->
+<div id="lxPopup" data-chan="">
+  This is the lighting popup
+</div>
+
+
+  <!-- load renderer script. all remote javascript goes there... -->
+  <script src='./renderer.js'></script>
+  <script src='./menu.js'></script>
+  </body>
+</html>

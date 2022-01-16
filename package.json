@@ -1,0 +1,22 @@
+{
+  "name": "EasyCue",
+  "version": "0.1.0",
+  "author": "David Hoare",
+  "description": "Lighting console and sound playback",
+  "url": "https://davidhoare.net/easycue/",
+  "main": "main.js",
+  "dependencies": {
+    "@electron/remote": "^2.0.1",
+    "commander": "^8.3.0",
+    "connect": "^3.7.0",
+    "electron-json-storage": "^4.5.0",
+    "express": "^4.17.2",
+    "serialport": "^9.2.8",
+    "socket.io": "^4.4.1",
+    "universal-analytics": "^0.5.3"
+  },
+  "productName": "EasyCue",
+  "devDependencies": {
+    "electron-rebuild": "^3.2.7"
+  }
+}
