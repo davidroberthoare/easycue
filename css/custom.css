@@ -1,0 +1,222 @@
+
+  .no_selection {
+      -webkit-user-select: none; /* webkit (safari, chrome) browsers */
+      -moz-user-select: none; /* mozilla browsers */
+      -khtml-user-select: none; /* webkit (konqueror) browsers */
+      -ms-user-select: none; /* IE10+ */
+  }
+
+
+  /*bootstrap overrides*/
+  .nav>li{
+    display: inline-block;
+    float: none;
+  }
+  .divider-vertical {
+    height: 43px;
+    margin: -17px 9px;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #FFF;
+    }
+  .navbar-nav{
+    margin-left:5px;
+    margin-right:5px;
+  }
+  /*.navbar-left{
+    margin-left:5px;
+  }*/
+
+  .navbar{
+    min-width: 1100px;
+  }
+
+  footer{
+    position:fixed;
+    bottom: 0px;
+    background-color: #efefef;
+    width: 100%;
+    padding:4px 12px;
+  }
+  .chan_sliders{
+    position: relative;
+    width: 100%;
+    height: 150px;
+  }
+  .chan_sliders td{
+    position: relative;
+    text-align: center;
+    vertical-align: top;
+    color:#aaa;
+  }
+
+  .chan_slider {
+    margin-left:auto;
+    margin-right:auto;
+      /*position:absolute;*/
+      /*-webkit-transform: rotate(-90deg);*/
+      /*margin-left: -63px;*/
+      /*top:60px;*/
+      /*display: inline-block;*/
+  }
+  .ui-widget-header{ background-color: #f2df77; }
+
+  .chan_slider div.ui-slider-range{
+    background-color:#ccc;
+  }
+
+  .chan_level{
+    width: 45px;
+    text-align: center;
+  }
+
+
+  #lxPopup{
+    display: none;
+    position: absolute;
+    background-color: #f5f5f5;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #ddd;
+    border-radius: 5px;
+    padding:10px;
+    min-height: 50px;
+    min-width: 50px;
+    top:0px;
+    left:0px;
+    z-index: 9999;
+  }
+
+
+
+
+  .lx_container, .snd_container{
+    width: 100%;
+    overflow-x: scroll;
+    overflow-y: scroll;
+    min-height:100px;
+  }
+  /*.lx_scroller, .snd_scroller{*/
+    /*width: 100%;*/
+    /*height: 230px;*/
+    /*overflow-y: scroll;*/
+    /*overflow-x: hidden;*/
+  }
+
+  
+  .lx_container th, .lx_container td, .snd_container th, .snd_container td{
+    text-align: center;
+  }
+  
+  #lx_datagrid, #snd_datagrid{
+    table-layout: fixed;
+  }
+
+  #lx_datagrid input, #snd_datagrid input{
+    border: none;
+    text-align: center;
+    background: transparent;
+  }
+
+  #lx_datagrid input{
+    border-bottom: 3px solid transparent;
+  }
+
+
+  .lx_goto{
+    cursor: pointer;
+  }
+  .lx_goto:before {
+    display:    inline-block;   
+    width:    0;    
+    height:   0;  
+    border-top:   solid transparent;
+    border-bottom:  solid transparent;
+    border-left: solid green; 
+    border-width: 5px;
+    content:    ' ';
+    margin-right: 5px;
+  }
+
+  td, th{
+    padding:2px 0px !important;
+    border:none;
+  }
+  th{
+    font-weight: bold;
+  }
+
+  .t_sm{ width:40px; }
+  .t_med{ width:75px; }
+  .t_lng{ width:150px; }
+  .t_lng2{ width:400px; }
+
+  .t_med, .t_lng, .t_lng2{
+    text-align: left !important;
+  }
+
+  .selected{ background-color: #eee !important; font-weight: bold;}
+  .lx_active{ background-color: #ada !important;}
+  .lx_fading{ background-color: #FFE5A4 !important;}
+  .lx_af_waiting{ 
+    background-color: #EEFFAD !important;
+    -webkit-animation: pulsate 1s ease-out;
+    -webkit-animation-iteration-count: 20; 
+    opacity: 0.5;
+  }
+
+  .snd_active{ background-color: #dda9dd !important;}
+  .snd_playing{ background-color: #a2caff !important; font-style: italic; border:3px solid green !important;}
+  .snd_fading{ background-color: #ffb1b7 !important; font-style: italic;}
+
+  .snd_file_btn, .snd_file_play {cursor: pointer;}
+  
+  .file_span{
+    display: inline-block;  
+    text-align: center !important;
+    direction: rtl;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-dialog{
+    width:400px;
+    text-align: center;
+  }
+
+  #patchlist{
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #patchlist td, #patchlist th{
+    text-align: center;
+    padding: 1px 5px !important;
+  }
+
+  #patchlist input{
+    width: 40px;
+    text-align: center;
+  }
+  #status-mid{
+    font-weight: bold;
+  }
+
+
+.pulsate {
+  -webkit-animation: pulsate 1s ease-out;
+  -webkit-animation-iteration-count: 20; 
+  opacity: 0.5;
+}
+@-webkit-keyframes pulsate {
+  0% { 
+      opacity: 1.0;
+  }
+  50% { 
+      opacity: 0.5;
+  }
+  100% { 
+      opacity: 1.0;
+  }
+}

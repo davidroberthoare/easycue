@@ -1,0 +1,211 @@
+{
+    "info": {},
+    "channels": 48,
+    "patch": {
+        "0": {
+          "dim": 31,
+          "type": "I-RGB"
+        },
+        "1": {
+          "dim": 36,
+          "type": "I-RGB"
+        },
+        "2": {
+          "dim": 3,
+          "type": "Standard"
+        },
+        "3": {
+          "dim": 4,
+          "type": "Standard"
+        },
+        "4": {
+          "dim": 5,
+          "type": "Standard"
+        },
+        "5": {
+          "dim": 6,
+          "type": "Standard"
+        },
+        "6": {
+          "dim": 7,
+          "type": "Standard"
+        },
+        "7": {
+          "dim": 8,
+          "type": "Standard"
+        },
+        "8": {
+          "dim": 9,
+          "type": "Standard"
+        },
+        "9": {
+          "dim": 10,
+          "type": "Standard"
+        },
+        "10": {
+          "dim": 11,
+          "type": "Standard"
+        },
+        "11": {
+          "dim": 12,
+          "type": "Standard"
+        },
+        "12": {
+          "dim": 13,
+          "type": "Standard"
+        },
+        "13": {
+          "dim": 14,
+          "type": "Standard"
+        },
+        "14": {
+          "dim": 15,
+          "type": "Standard"
+        },
+        "15": {
+          "dim": 16,
+          "type": "Standard"
+        },
+        "16": {
+          "dim": 17,
+          "type": "Standard"
+        },
+        "17": {
+          "dim": 18,
+          "type": "Standard"
+        },
+        "18": {
+          "dim": 19,
+          "type": "Standard"
+        },
+        "19": {
+          "dim": 20,
+          "type": "Standard"
+        },
+        "20": {
+          "dim": 21,
+          "type": "Standard"
+        },
+        "21": {
+          "dim": 22,
+          "type": "Standard"
+        },
+        "22": {
+          "dim": 23,
+          "type": "Standard"
+        },
+        "23": {
+          "dim": 24,
+          "type": "Standard"
+        }
+    },
+    "types":{
+        "Standard":{
+            "description": "A standard 1 channel dimmer or device.",
+            "channels":[
+                "Intensity"
+            ]
+        },
+        "I-RGB":{
+            "description": "eg. LED with Intensity, Red, Green, Blue controls",
+            "channels":[
+                "Intensity",
+                "Red",
+                "Green",
+                "Blue"
+            ]
+        },
+        "Dice-11":{
+            "description": "Dice LED in 11-ch mode",
+            "channels":[
+                "Intensity",
+                "Red",
+                "Green",
+                "Blue",
+                "Amber",
+                "White",
+                "UV",
+                "Strobe Speed",
+                "Settings",
+                "SpeedAdj",
+                "DimmerCurve"
+            ]
+        }
+    },
+    "lx": [
+    {
+        "name": "LX 0",
+        "desc": "(default description 2)",
+        "in":3,
+        "out":3,
+        "af":"",
+        "snd":"",
+        "levels": {
+            "0": {
+                "Intensity":75,
+                "Red":20,
+                "Green":60,
+                "Blue":80
+            },
+            "1": {
+                "Intensity":20,
+                "Red":100,
+                "Green":0,
+                "Blue":50
+            },
+            "2": {
+                "Intensity":15
+            }
+        }
+    },
+    {
+        "name": "LX 1",
+        "desc": "(second cue)",
+        "in":3,
+        "out":3,
+        "af":"",
+        "snd":"",
+        "levels": {
+            "0": {
+                "Intensity":22,
+                "Red":100,
+                "Green":15,
+                "Blue":65
+            },
+            "1": {
+                "Intensity":100,
+                "Red":0,
+                "Green":100,
+                "Blue":10
+            },
+            "2": {
+                "Intensity":88
+            }
+        }
+    }
+    ],
+    "snd": [
+    {
+        "name": "SILENCE",
+        "desc": "(special cue for fading out others)",
+        "file":"sounds/silence.wav",
+        "startvol":0,
+        "in":0,
+        "vol":0,
+        "hold":"",
+        "out":0,
+        "endvol":0
+    },
+    {
+        "name": "Snd 1",
+        "desc": "",
+        "file":"",
+        "startvol":0,
+        "in":0,
+        "vol":100,
+        "hold":"",
+        "out":3,
+        "endvol":0
+    }
+    ]
+}

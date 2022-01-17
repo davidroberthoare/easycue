@@ -1,0 +1,27 @@
+{
+  "name": "EasyCue",
+  "version": "0.1.0",
+  "author": "David Hoare",
+  "description": "Lighting console and sound playback",
+  "url": "https://davidhoare.net/easycue/",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/davidroberthoare/easycue",
+  "keywords": [
+    "lighting",
+    "sound",
+    "dmx",
+    "theatre"
+  ],
+  "license": "CC0-1.0",
+  "productName": "EasyCue",
+  "dependencies": {
+    "electron-json-storage": "^4.5.0",
+    "universal-analytics": "^0.5.3"
+  },
+  "devDependencies": {
+    "electron": "^16.0.7"
+  }
+}
