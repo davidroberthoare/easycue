@@ -18,10 +18,12 @@
   "license": "CC0-1.0",
   "productName": "EasyCue",
   "dependencies": {
+    "dmx": "^0.2.5",
     "electron-json-storage": "^4.5.0",
     "universal-analytics": "^0.5.3"
   },
   "devDependencies": {
-    "electron": "^16.0.7"
+    "electron": "^16.0.7",
+    "electron-rebuild": "^3.2.7"
   }
 }

@@ -1,19 +1,21 @@
 // ******* RENDERER
 
 // ******** GLOBAL VARIABLES
-var settings = getSettingsFromMain();
+var settings = getSettingsFromMain().then(function(){
+	startUp();
+});
 console.log("RENDERER SETTINGS", settings)
 
-
-
-
-
+var live = false;	//start false until it is initialized properly
 
 
 var show = {};	//global variable for storing active show data
 var tempPatch = {};	//used to temporarily store the patch while working on it...
 
 var copied_levels = {};	//used for temporarily copying one set of levels to another via the UI LX_Popup
+
+var lxInterval = [];	//interval timer for slider GUI updates
+var timers = [];	//for tracking setTimout (audio) timers
 
 var lxActiveCue = 0;
 var afTimer = null;
@@ -26,29 +28,9 @@ var previousStatus = "";	//for statusBar updates
 
 //jquery READY function
 $(function() {
+	
 
-
-	//***** LOAD THE SHOW
-	try{	
-		if(settings.activeFile !== undefined && settings.activeFile !== ""){
-			bootbox.confirm("Would you like to load the last used file: " + settings.activeFile, function(answer){
-				if(answer === true){
-					readShowFile(settings.activeFile);
-				}else{
-					readShowFile('new');
-				}
-			});
-		}else{
-			readShowFile('new');
-		}
-		console.log(show);
-	}catch (err) {
-		bootbox.alert("error: " + err);
-	}
-
-	//***** activated last-used device
-	chooseDeviceType(settings.deviceType);
-	// chooseDeviceType("null");
+	
 
 // ******** GUI LISTENERS
 	
@@ -140,18 +122,17 @@ $(function() {
 	  this.select();
 	});
 
-	$('.chan_level').change(function() {
+	$('table.chan_sliders').on("change", ".chan_level", function() {
 		// $(".chan_level[data-chan='"+chan+"']").val(newvalue);
 		if($(this).val()==="")
 			$(this).val(0);
 		var chan = $(this).data("chan");
 		var newvalue = $(this).val();
-		updateSlider(chan, newvalue);
-		for (var i = 0; i < show.patch[chan]['dims'].length; i++) {
-			var patchedChan = show.patch[chan]['dims'][i]-1;
-			// console.log("patched chan: " + patchedChan);
-			universe.update({[patchedChan]: percent_to_dmx(newvalue)});
-		}
+		console.log("chan_level CHANGE",chan, newvalue );
+
+		var patchedChan = show.patch[chan].dim - 1;
+		api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
+		getLive();
 	});
 
 
@@ -479,13 +460,13 @@ $(function() {
 	
 	$("#snd_datagrid").on('click','.snd_file_btn', function(){
 		console.log("open button clicked");
-		var file = readFile();
-		console.log(file);
-		if(file === false) return;
-		// var cueNum = $(this).data("snd");
-		$(this).closest("tr").find("span[data-part='file']").text(file.path);
-		var cueNum = $(this).closest("tr").data("snd");
-		updateSndData(cueNum, "file", file.path);
+		// var file = readFile();
+		// console.log(file);
+		// if(file === false) return;
+		var cueNum = $(this).data("snd");
+
+		chooseSoundFile(cueNum);
+
 	});
 
 	$("#snd_datagrid").on('click','.snd_file_play', function(){
@@ -578,17 +559,20 @@ $(function() {
 
 //********* GUI UPDATING FUNCTIONS
 
-function initializeShow(){
-	//load the first cue of the active show
-	universe.updateAll(0);
-	// universe.update(show.lx[0].levels);
+function initializeShow(newShow){	
+	console.log("INITIALIZING SHOW");
+	show = newShow;	//update the RENDERER GLOBAL
+
 	if(typeof show.lx !== "undefined"){
 		setupGui();
 		updateLxCuelist();
-		updateAllSliders();
+		// updateAllSliders();
+		getLive();
 		updateSndCuelist();
 		updateStatusBar();
-		
+
+		updatePatchList();
+
 		lxActiveCue = 0;
 		$("#lx_next_cue").val(lxActiveCue);
 		lxCueGo(0);	//jump into the first cue
@@ -621,6 +605,7 @@ function setupGui(){
       max: 100,
       value: 0,
       slide: function( event, ui ) {
+		//   console.log("chan_slider SLIDE", ui.value);
         var newvalue = ui.value;
         var chan = parseInt($(this).data('chan'));
         var level_box = $(".chan_level[data-chan='"+chan+"']");
@@ -634,7 +619,8 @@ function setupGui(){
         // for (var i = 0; i < show.patch[chan]['dims'].length; i++) {
 	        var patchedChan = show.patch[chan].dim - 1;
 			// console.log("patched chan: " + patchedChan);
-			universe.update({[patchedChan]: percent_to_dmx(newvalue)});
+			// universe.update({[patchedChan]: percent_to_dmx(newvalue)});
+			api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
         // }
       }
     });
@@ -661,7 +647,8 @@ function updateStatusBar(){
 function startLxUpdate(){
 	$(".chan_sliders input").prop( "disabled", true );
 	var interval = setInterval(function(){
-        updateAllSliders();
+        // updateAllSliders();
+		getLive();
     }, 100);
 	lxInterval.push(interval);
 }
@@ -669,8 +656,13 @@ function stopLxUpdate(){
 	console.log("stopping the LXUpdate interval: " + lxInterval);
 	$.each(lxInterval, function(i, interval){
 		clearInterval(interval);
+		var index = lxInterval.indexOf(interval);
+		if (index !== -1) {
+			lxInterval.splice(index, 1);
+		}
 	});
-	updateAllSliders();
+	// updateAllSliders();
+	getLive();
 	$(".chan_sliders input").prop( "disabled", false );
 }
 
@@ -684,8 +676,9 @@ function updateAllSliders(){
 		updateSlider(ch, instrument);
 	});
 }
+
 function updateSlider(chan, instrument){
-	//dmx_to_percent(live[instrument.dim - 1])
+	// console.log("updating slider", chan, instrument);
 	var level_data = {};
 	var instrument_type = instrument.type;
 	
@@ -766,6 +759,7 @@ function updateLxCuelist(){
 }
 
 function lxFinishedCue(){
+	console.log("lxFinishedCue")
 	stopLxUpdate();
 	setLxCueStatus(lxActiveCue, "active");
 	$("#lx_next_cue").val(lxActiveCue+1);
@@ -909,7 +903,9 @@ function lxCueGo(time){
 		//ACTUALLY RUN THE FADE
 		console.log("attempting to start fade with this data:");
 		console.log(fullLevels);
-		new A().add(fullLevels, time).run(universe, lxFinishedCue);
+		
+		// new A().add(fullLevels, time).run(universe, lxFinishedCue);	// NOTE --> NOW MOVED TO MAIN
+		api.send( 'runDmxAnimation', {levels: fullLevels, time: time} );
 
 
 		//also trigger a sound cue if there is one linked
@@ -1130,9 +1126,11 @@ function lxDelete(){
 	}
 }
 
+
 function updateSndData(cueNum, dataPart, value){
 	console.log(arguments);
 	show.snd[cueNum][dataPart] = value;
+
 }
 
 
@@ -1191,27 +1189,63 @@ function showPatchWindow(){
 
 
 function patchReset(){
-	console.log("resetting patch");
-	$(".patch_row").each(function(){
-		var i = $(this).data("dim");
-		console.log(i);
-		// $(".patch_slider").val(0);	//set them all to 0 first, then...
-		// console.log($(".patch_row[data-dim='"+i+"'] input" ));
-		if(i<=show.channels){
-			$(this).find(".patch_slider").val(i);
-		}else{
-			$(this).find(".patch_slider").val("");
+	console.log("getting channel number");
+	bootbox.prompt({
+		title: "How many LX Control Sliders? (1-96)",
+		inputType: 'number',
+		callback: function (result) {
+			console.log(result);
+			if(result>0 && result<= 96){
+				show.channels = result;
+
+				console.log("resetting patch for channels:", show.channels);
+				$(".patch_slider").attr("max", show.channels);
+				$(".patch_row").each(function(){
+					var i = $(this).data("dim");
+					console.log(i);
+					// $(".patch_slider").val(0);	//set them all to 0 first, then...
+					// console.log($(".patch_row[data-dim='"+i+"'] input" ));
+					if(i<=show.channels){
+						$(this).find(".patch_slider").val(i);
+					}else{
+						$(this).find(".patch_slider").val("");
+					}
+				});
+				$(".patch_row select").val("Standard");
+				updateTempPatch();
+
+
+			}else{
+				bootbox.alert("Please choose a valid number of channels: 1-96");
+			}
 		}
 	});
-	$(".patch_row select").val("Standard");
-	updateTempPatch();
+
+
 }
 
 function patchClear(){
-	console.log("clearing patch");
-	$(".patch_slider").val("");
-	$(".patch_row select").val("Standard");
-	updateTempPatch();
+
+	bootbox.prompt({
+		title: "How many LX Control Sliders? (1-96)",
+		inputType: 'number',
+		callback: function (result) {
+			console.log(result);
+			if(result>0 && result<= 96){
+				show.channels = result;
+			
+				console.log("clearing patch");
+				$(".patch_slider").val("");
+				$(".patch_slider").attr("max", show.channels);
+				$(".patch_row select").val("Standard");
+				updateTempPatch();
+
+			}else{
+				bootbox.alert("Please choose a valid number of channels: 1-96");
+			}
+		}
+	});
+
 }
 
 
@@ -1253,7 +1287,7 @@ function updatePatchList(){
 			row.find(".ch_details").text(type_channels[i]);
 			
 			if(i>0){	//for any channels above the first channel
-				// console.log("disabling ch: " + i);
+				console.log("disabling ch: " + i);
 				row.find("input.patch_slider").val("");	//clear it out instead 
 				// row.find("input.patch_slider").attr('disabled', 'disabled');
 				// row.find("select").attr('disabled', 'disabled');
@@ -1324,7 +1358,36 @@ function updateTempPatch(){
 function savePatch(){
 	updateTempPatch();
 	show.patch = tempPatch;	//assign it all back to the main show patch "saving" it.
-	initializeShow();
+	
+	api.send( 'sendShow', show );	//send back to main just in case...
+	initializeShow(show);	//at this end, reinit the UI
+}
+
+
+
+function startUp(){
+	console.log("STARTUP: current settings.activeFile", settings.activeFile);
+	//***** LOAD THE SHOW
+	try{	
+		if(settings.activeFile !== undefined && settings.activeFile !== ""){
+			bootbox.confirm("Would you like to load the last used file: " + settings.activeFile, function(answer){
+				if(answer === true){
+					// readShowFile(settings.activeFile);
+					api.send( 'openShowFile', settings.activeFile );
+					
+				}else{
+					// readShowFile('new');
+					api.send( 'newShowFile');
+				}
+			});
+		}else{
+			// readShowFile('new');
+			api.send( 'newShowFile');
+		}
+		// console.log(show);
+	}catch (err) {
+		bootbox.alert("error: " + err);
+	}
 }
 
 
@@ -1337,117 +1400,164 @@ function savePatch(){
 
 
 
-
-
-
-
 // ***** UTILITY FUNCTIONS
 // ***** UTILITY FUNCTIONS
 // ***** UTILITY FUNCTIONS
 
 
+dmx_to_percent = function(val){
+	return Math.round((val / 255) * 100);
+}
 
+percent_to_dmx = function(val){
+	return Math.round((val / 100) * 255);
+}
+
+componentToHex = function(c) {
+	var hex = c.toString(16);
+	return hex.length == 1 ? "0" + hex : hex;
+}
+
+rgbToHex = function(r, g, b) {
+	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+colorLevelsToHex = function(r,g,b){
+	r = percent_to_dmx(r);
+	g = percent_to_dmx(g);
+	b = percent_to_dmx(b);
+	return rgbToHex(r, g, b);
+}
+
+getUUID = function(){
+	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+		return v.toString(16);
+	});
+	console.log("generated uuid: " + uuid);
+	return uuid;
+}
+
+containsAll = function(needles, haystack){
+	var success = needles.every(function(val) {
+		return haystack.indexOf(val) !== -1;
+	});
+	return success;
+}
+
+
+
+
+
+
+// ********* TEST FUNCTION
+function test(p1, p2){
+	console.log("TESTING RENDERER", p1, p2);
+}
+
+
+// TODO! THESE HAVE BEEN MOVED TO MAIN... NEED TO BE ADJUSTED
 
 function readShowFile(filetype){
-	statusNotice("Reading File: " + filetype, false, false);
-	var file = readFile(filetype);
-	var showData = file.data;
-	if(JSON.parse(showData)){
-		show = JSON.parse(showData);
-		settings.activeFile = (filetype=='new') ? "" : file.path;
-		updateSettings();
+	// console.log("readShowFile", filetype);
+	// statusNotice("Reading File: " + filetype, false, false);
+	// var file = readFile(filetype);
+	// var showData = file.data;
+	// if(JSON.parse(showData)){
+	// 	show = JSON.parse(showData);
+	// 	settings.activeFile = (filetype=='new') ? "" : file.path;
+	// 	updateSettings();
 
-		initializeShow();
-	}else{
-		bootbox.alert("Invalid show file. Please choose another.");
-	}
+	// 	initializeShow();
+	// }else{
+	// 	bootbox.alert("Invalid show file. Please choose another.");
+	// }
 }
-
 
 function readFile(filetype){
-	// console.log("readfile: ");
-	console.log(arguments);
-	var file;
-	if(filetype === "new"){
-		console.log("reading default setup file");
-		file = [settings.defaultShowFile];
-	}
-	else if(filetype !== "" && filetype !== undefined){
-		file = [filetype];
-	}
-	else{
-		console.log("choosing a file:");
-		file = dialog.showOpenDialog({properties: ['openFile']});
+	// console.log(arguments);
+	// var file;
+	// if(filetype === "new"){
+	// 	console.log("reading default setup file");
+	// 	file = [settings.defaultShowFile];
+	// }
+	// else if(filetype !== "" && filetype !== undefined){
+	// 	file = [filetype];
+	// }
+	// else{
+	// 	console.log("choosing a file:");
+	// 	file = dialog.showOpenDialog({properties: ['openFile']});
 
-		if(file===undefined) return false;
-	}
+	// 	if(file===undefined) return false;
+	// }
 
-	try {
-		//test to see if settings exist
-		// var path = app.getPath('userData') + '/settings.json'
-		console.log("reading file:");
-		console.log(file);
+	// try {
+	// 	//test to see if settings exist
+	// 	console.log("reading file:");
+	// 	console.log(file);
 
-		var path = file[0];
-		console.log(path);
-		fs.openSync(path, 'r+'); //throws error if file doesn't exist
-		var data=fs.readFileSync(path); //file exists, get the contents
-		// console.log(data);
+	// 	var path = file[0];
+	// 	console.log(path);
+	// 	fs.openSync(path, 'r+'); //throws error if file doesn't exist
+	// 	var data=fs.readFileSync(path); //file exists, get the contents
+	// 	// console.log(data);
 
-		return {"path":path, "data":data};
+	// 	return {"path":path, "data":data};
 		
-	} catch (err) {
-		console.log("error! " + err);
-		return false;
-	}
+	// } catch (err) {
+	// 	console.log("error! " + err);
+	// 	return false;
+	// }
 }
 
-
 function saveFile(existing) {
-	console.log("saveFile called");
-	if(existing===true && settings.activeFile !== "" && settings.activeFile !== undefined){
-		fileName = settings.activeFile;
-		fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
-			console.log("file saved: " + fileName);
-			settings.activeFile = fileName;
-			updateSettings();
-			updateStatusBar();
-		});
-	}else{
+	// console.log("saveFile called");
+	// if(existing===true && settings.activeFile !== "" && settings.activeFile !== undefined){
+	// 	fileName = settings.activeFile;
+	// 	fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
+	// 		console.log("file saved: " + fileName);
+	// 		settings.activeFile = fileName;
+	// 		updateSettings();
+	// 		updateStatusBar();
+	// 	});
+	// }else{
 	
-		dialog.showSaveDialog({
-			filters: [{
-				name: 'show',
-				extensions: ['shw']
-			}]
-		}, function(fileName) {
-			if (fileName === undefined) return;
-			fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
-				dialog.showMessageBox({
-					message: "The file has been saved! :-)",
-					buttons: ["OK"]
-				});
-				settings.activeFile = fileName;
-				updateSettings();
-				updateStatusBar();
-			});
-		});
-	}
+	// 	dialog.showSaveDialog({
+	// 		filters: [{
+	// 			name: 'show',
+	// 			extensions: ['shw']
+	// 		}]
+	// 	}, function(fileName) {
+	// 		if (fileName === undefined) return;
+	// 		fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
+	// 			dialog.showMessageBox({
+	// 				message: "The file has been saved! :-)",
+	// 				buttons: ["OK"]
+	// 			});
+	// 			settings.activeFile = fileName;
+	// 			updateSettings();
+	// 			updateStatusBar();
+	// 		});
+	// 	});
+	// }
 }
 
 function requireJSON(filePath) {
-	try{
-  		return JSON.parse(fs.readFileSync(filePath, "utf8"));
-	}catch (err) {
-		console.log(err);
-	}
+	// try{
+  	// 	return JSON.parse(fs.readFileSync(filePath, "utf8"));
+	// }catch (err) {
+	// 	console.log(err);
+	// }
 }
+// END ADJUST
+
 
 Array.prototype.move = function(from,to){
 	console.log("moving from: " + from + " to: " + to);
   this.splice(to,0,this.splice(from,1)[0]);
   return this;
 };
+
 
 function statusNotice(text, type, permanent){
 	console.log("Status Notice: " + text);
@@ -1480,12 +1590,18 @@ function statusNotice(text, type, permanent){
 
 
 
-
+// ******
+// GENERIC FUNCTION TO RUN RENDERER COMMANDS BASED ON MESSAGE FROM MAIN
+api.handle( 'callRendererFunction', ( event, data ) => function( event, data ) {
+    console.log( 'calling function', data )
+	window[data.func].apply(this, data.params);
+}); 
 
 
 
 
 // PASS SETTINGS BACK AND FORTH
+
 // SEND RENDERER settings back to MAIN
 function updateSettings(){
     api.send( 'sendSettings', settings );
@@ -1506,6 +1622,88 @@ async function getSettingsFromMain(){
 // END OF SETTINGS FUNCTIONS
 
 
+
+// PASS SETTINGS BACK AND FORTH
+
+// SEND RENDERER settings back to MAIN
+function updateShow(){
+    api.send( 'sendShow', show );
+}
+
+// receive settings pushed from Main
+api.handle( 'sendShow', ( event, data ) => function( event, data ) {
+    console.log( 'received SHOW from MAIN', data )
+    if(data) show = data;
+});
+
+// getting settings...may not be needed because they can be pushed using above 'sendsettings' listener
+async function getShowFromMain(){
+    const result = await api.send( 'getShow');
+    console.log("received show: ", result);
+    if(result) show = result;
+};
+// END OF SETTINGS FUNCTIONS
+
+
+
+
+// receive new soundFile from picker
+api.handle( 'fetchShowForSave', ( event, data ) => function( event, data ) {	//for main-initiated update
+	console.log( 'fetchShowForSave :: sending the current SHOW, with a save action', data );
+	
+	api.send( 'sendShow', {show : show, action : data.action} );	//send the SHOW back to MAIN, with an action for it to continue with...
+
+});
+
+
+
+
+
+
+
+
+
+// Sync LIVE DMX universe data
+async function getLive(){
+    const result = await api.send( 'getLive');
+    // console.log("received LIVE: ", result);
+    console.log("received LIVE");
+    live = result;
+	updateAllSliders();
+};
+api.handle( 'sendLive', ( event, data ) => function( event, data ) {	//for main-initiated update
+    console.log( 'received LIVE from MAIN', data )
+    live = data;
+});
+
+
+// at the end of a DMX animation, this will be sent, with the updated live universe
+api.handle( 'lxFinishedCue', ( event, data ) => function( event, data ) {	//for main-initiated update
+    // console.log( 'received lxFinishedCue from MAIN', data )
+    live = data;
+	lxFinishedCue();
+});
+
+
+// trigger file-picker
+async function chooseSoundFile(cue){
+	api.send( 'chooseSoundFile', {cue:cue});
+};
+
+// receive new soundFile from picker
+api.handle( 'chosenSoundFile', ( event, data ) => function( event, data ) {	//for main-initiated update
+	console.log( 'received chosenSoundFile from MAIN', data );
+
+	// $(this).closest("tr").find("span[data-part='file']").text(file.path);
+	// var cueNum = $(this).closest("tr").data("snd");
+
+	updateSndData(data.cue, "file", data.file);
+	updateSndCuelist();
+});
+
+
+
+
 /**
  * test  Sending messages to Main
  * `data` can be a boolean, number, string, object, or array
@@ -1518,5 +1716,8 @@ api.send( 'pingMain', 'RENDERER READY' );
 api.handle( 'pingRenderer', ( event, data ) => function( event, data ) {
     console.log( 'received from MAIN', data )
 });
+
+
+
 
 

@@ -3,12 +3,12 @@
   "channels": 48,
   "patch": {
     "0": {
-      "dim": 31,
-      "type": "I-RGB"
+      "dim": 1,
+      "type": "Standard"
     },
     "1": {
-      "dim": 36,
-      "type": "I-RGB"
+      "dim": 2,
+      "type": "Standard"
     },
     "2": {
       "dim": 3,
@@ -96,6 +96,102 @@
     },
     "23": {
       "dim": 24,
+      "type": "Standard"
+    },
+    "24": {
+      "dim": 25,
+      "type": "Standard"
+    },
+    "25": {
+      "dim": 26,
+      "type": "Standard"
+    },
+    "26": {
+      "dim": 27,
+      "type": "Standard"
+    },
+    "27": {
+      "dim": 28,
+      "type": "Standard"
+    },
+    "28": {
+      "dim": 29,
+      "type": "Standard"
+    },
+    "29": {
+      "dim": 30,
+      "type": "Standard"
+    },
+    "30": {
+      "dim": 31,
+      "type": "Standard"
+    },
+    "31": {
+      "dim": 32,
+      "type": "Standard"
+    },
+    "32": {
+      "dim": 33,
+      "type": "Standard"
+    },
+    "33": {
+      "dim": 34,
+      "type": "Standard"
+    },
+    "34": {
+      "dim": 35,
+      "type": "Standard"
+    },
+    "35": {
+      "dim": 36,
+      "type": "Standard"
+    },
+    "36": {
+      "dim": 37,
+      "type": "Standard"
+    },
+    "37": {
+      "dim": 38,
+      "type": "Standard"
+    },
+    "38": {
+      "dim": 39,
+      "type": "Standard"
+    },
+    "39": {
+      "dim": 40,
+      "type": "Standard"
+    },
+    "40": {
+      "dim": 41,
+      "type": "Standard"
+    },
+    "41": {
+      "dim": 42,
+      "type": "Standard"
+    },
+    "42": {
+      "dim": 43,
+      "type": "Standard"
+    },
+    "43": {
+      "dim": 44,
+      "type": "Standard"
+    },
+    "44": {
+      "dim": 45,
+      "type": "Standard"
+    },
+    "45": {
+      "dim": 46,
+      "type": "Standard"
+    },
+    "46": {
+      "dim": 47,
+      "type": "Standard"
+    },
+    "47": {
+      "dim": 48,
       "type": "Standard"
     }
   },
