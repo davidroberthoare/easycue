@@ -1,197 +1,101 @@
 {
   "info": {},
-  "channels": 48,
+  "channels": 24,
   "patch": {
     "0": {
+      "dim": 28,
+      "type": "I-RGB"
+    },
+    "1": {
+      "dim": 30,
+      "type": "I-RGB"
+    },
+    "2": {
       "dim": 1,
       "type": "Standard"
     },
-    "1": {
+    "3": {
       "dim": 2,
       "type": "Standard"
     },
-    "2": {
-      "dim": 3,
-      "type": "Standard"
-    },
-    "3": {
-      "dim": 4,
-      "type": "Standard"
-    },
     "4": {
-      "dim": 5,
+      "dim": 2,
       "type": "Standard"
     },
     "5": {
-      "dim": 6,
+      "dim": 4,
       "type": "Standard"
     },
     "6": {
-      "dim": 7,
+      "dim": 5,
       "type": "Standard"
     },
     "7": {
-      "dim": 8,
+      "dim": 5,
       "type": "Standard"
     },
     "8": {
-      "dim": 9,
+      "dim": 6,
       "type": "Standard"
     },
     "9": {
-      "dim": 10,
+      "dim": 7,
       "type": "Standard"
     },
     "10": {
-      "dim": 11,
+      "dim": 8,
       "type": "Standard"
     },
     "11": {
-      "dim": 12,
+      "dim": 9,
       "type": "Standard"
     },
     "12": {
-      "dim": 13,
+      "dim": 10,
       "type": "Standard"
     },
     "13": {
-      "dim": 14,
+      "dim": 11,
       "type": "Standard"
     },
     "14": {
-      "dim": 15,
+      "dim": 12,
       "type": "Standard"
     },
     "15": {
-      "dim": 16,
+      "dim": 13,
       "type": "Standard"
     },
     "16": {
-      "dim": 17,
+      "dim": 14,
       "type": "Standard"
     },
     "17": {
-      "dim": 18,
+      "dim": 15,
       "type": "Standard"
     },
     "18": {
-      "dim": 19,
+      "dim": 16,
       "type": "Standard"
     },
     "19": {
-      "dim": 20,
+      "dim": 17,
       "type": "Standard"
     },
     "20": {
-      "dim": 21,
+      "dim": 18,
       "type": "Standard"
     },
     "21": {
-      "dim": 22,
+      "dim": 19,
       "type": "Standard"
     },
     "22": {
-      "dim": 23,
+      "dim": 20,
       "type": "Standard"
     },
     "23": {
-      "dim": 24,
-      "type": "Standard"
-    },
-    "24": {
-      "dim": 25,
-      "type": "Standard"
-    },
-    "25": {
-      "dim": 26,
-      "type": "Standard"
-    },
-    "26": {
-      "dim": 27,
-      "type": "Standard"
-    },
-    "27": {
-      "dim": 28,
-      "type": "Standard"
-    },
-    "28": {
-      "dim": 29,
-      "type": "Standard"
-    },
-    "29": {
-      "dim": 30,
-      "type": "Standard"
-    },
-    "30": {
-      "dim": 31,
-      "type": "Standard"
-    },
-    "31": {
-      "dim": 32,
-      "type": "Standard"
-    },
-    "32": {
-      "dim": 33,
-      "type": "Standard"
-    },
-    "33": {
-      "dim": 34,
-      "type": "Standard"
-    },
-    "34": {
-      "dim": 35,
-      "type": "Standard"
-    },
-    "35": {
-      "dim": 36,
-      "type": "Standard"
-    },
-    "36": {
-      "dim": 37,
-      "type": "Standard"
-    },
-    "37": {
-      "dim": 38,
-      "type": "Standard"
-    },
-    "38": {
-      "dim": 39,
-      "type": "Standard"
-    },
-    "39": {
-      "dim": 40,
-      "type": "Standard"
-    },
-    "40": {
-      "dim": 41,
-      "type": "Standard"
-    },
-    "41": {
-      "dim": 42,
-      "type": "Standard"
-    },
-    "42": {
-      "dim": 43,
-      "type": "Standard"
-    },
-    "43": {
-      "dim": 44,
-      "type": "Standard"
-    },
-    "44": {
-      "dim": 45,
-      "type": "Standard"
-    },
-    "45": {
-      "dim": 46,
-      "type": "Standard"
-    },
-    "46": {
-      "dim": 47,
-      "type": "Standard"
-    },
-    "47": {
-      "dim": 48,
+      "dim": 21,
       "type": "Standard"
     }
   },

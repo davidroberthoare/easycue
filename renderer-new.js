@@ -66,21 +66,42 @@ $(function() {
 	  saveFile();
 	});
 
-	$("#updatePatch").click(function(){
-	  updateTempPatch();
-	});
+	// $("#updatePatch").click(function(){
+	//   updateTempPatch();
+	// });
 
 	$("#savePatch").click(function(){
 	  savePatch();
 	});
 
-	$('.patch_sliders').keyup(function(e){
-	    if(e.keyCode == 13)
-	    {
-	        event.stopPropagation();
-	        event.preventDefault();
-	        $(".patch_sliders[data-chan='"+($(this).data("chan")+1)+"']").focus().select();
-	    }
+	$('#patchlist').on('change', '.patch_dimmer', function(e){
+		console.log("patch changed");
+
+		// error check the value
+		var val = $(this).val();
+		val = parseInt(val);
+		if(isNaN(val)){
+			$(this).val(1);
+		}else if(val>512){
+			$(this).val(512);
+		}else if(val<0){
+			$(this).val(1);
+		}else{
+			$(this).val(val);
+		}
+
+		var ch = parseInt($(this).closest(".patch_row").data("ch"));
+		console.log("updating patch row", ch);
+		updatePatchRowRange(ch);
+		checkRangeConflicts();
+	});
+
+	$('#patchlist').on('change', '.ch_type', function(e){
+		console.log("patch TYPE changed");
+		var ch = parseInt($(this).closest(".patch_row").data("ch"));
+		console.log("updating patch row", ch);
+		updatePatchRowRange(ch);
+		checkRangeConflicts();
 	});
 
 	$("#lx_add_cue").click(function(){
@@ -489,69 +510,69 @@ $(function() {
 	$("#patch_reset").click(function(){ patchReset(); });
 	$("#patch_clear").click(function(){ patchClear(); });
 
-	$(".patch_slider").on("change", function(){
-		//validate max/min and numeric
-		var val = $(this).val();
-		val = parseInt(val);
-		if(isNaN(val)){
-			$(this).val("");
-		}else if(val>show.channels){
-			$(this).val(show.channels);
-		}else if(val<0){
-			$(this).val("");
-		}else{
-			$(this).val(val);
-		}
-	});
+	// $(".patch_slider").on("change", function(){
+	// 	//validate max/min and numeric
+	// 	var val = $(this).val();
+	// 	val = parseInt(val);
+	// 	if(isNaN(val)){
+	// 		$(this).val("");
+	// 	}else if(val>show.channels){
+	// 		$(this).val(show.channels);
+	// 	}else if(val<0){
+	// 		$(this).val("");
+	// 	}else{
+	// 		$(this).val(val);
+	// 	}
+	// });
 
 
-	var prev_val;
-	$(".patch_row select").focus(function() {
-	    prev_val = $(this).val();
-	})
-	.change(function(){ 
+	// var prev_val;
+	// $(".patch_row select").focus(function() {
+	//     prev_val = $(this).val();
+	// })
+	// .change(function(){ 
 
-		var row = $(this).closest(".patch_row");
-		console.log(row);
+	// 	var row = $(this).closest(".patch_row");
+	// 	console.log(row);
 		
-		var currentVal = row.find("input.patch_slider").val();
-		console.log("row value: " + currentVal);
+	// 	var currentVal = row.find("input.patch_slider").val();
+	// 	console.log("row value: " + currentVal);
 
-		if(typeof currentVal !== "undefined" && currentVal !== "" && currentVal!==0){
+	// 	if(typeof currentVal !== "undefined" && currentVal !== "" && currentVal!==0){
 
-			var dimmer = row.data('dim');
-			var type = $(this).val();
-			console.log("newtype = " + type);
+	// 		var dimmer = row.data('dim');
+	// 		var type = $(this).val();
+	// 		console.log("newtype = " + type);
 
-			var type_channels = show.types[type].channels;
-			// console.log(type_channels);
+	// 		var type_channels = show.types[type].channels;
+	// 		// console.log(type_channels);
 
-			// //also change the next few rows if needed, and bump up the counter...
-			for (var i = 0; i < type_channels.length; i++) {
-				row = $(".patch_row[data-dim='"+parseInt(dimmer + i)+"']");
-			// 	// console.log(row);
-				// row.find("input.patch_slider").val(currentVal+1+i);
-				row.find("option[value='"+type+"']").prop("selected", true);
-				row.find(".ch_details").text(type_channels[i]);
+	// 		// //also change the next few rows if needed, and bump up the counter...
+	// 		for (var i = 0; i < type_channels.length; i++) {
+	// 			row = $(".patch_row[data-dim='"+parseInt(dimmer + i)+"']");
+	// 		// 	// console.log(row);
+	// 			// row.find("input.patch_slider").val(currentVal+1+i);
+	// 			row.find("option[value='"+type+"']").prop("selected", true);
+	// 			row.find(".ch_details").text(type_channels[i]);
 				
-				if(i>0){	//for any channels above the first channel
-					// console.log("disabling ch: " + i);
-					row.find("input.patch_slider").val("");	//clear it out instead 
-					// row.find("input.patch_slider").attr('disabled', 'disabled');
-					// row.find("select").attr('disabled', 'disabled');
-				}
+	// 			if(i>0){	//for any channels above the first channel
+	// 				// console.log("disabling ch: " + i);
+	// 				row.find("input.patch_slider").val("");	//clear it out instead 
+	// 				// row.find("input.patch_slider").attr('disabled', 'disabled');
+	// 				// row.find("select").attr('disabled', 'disabled');
+	// 			}
 				
-			}
-		}else{
-			$(this).val(prev_val);
-			console.log("returning false");
-			bootbox.alert("Please select a channel number first, then choose a type.");
-			return false;
-		}
+	// 		}
+	// 	}else{
+	// 		$(this).val(prev_val);
+	// 		console.log("returning false");
+	// 		bootbox.alert("Please select a channel number first, then choose a type.");
+	// 		return false;
+	// 	}
 
 
-		updateTempPatch();
-	});
+	// 	updateTempPatch();
+	// });
 
 });
 
@@ -571,7 +592,7 @@ function initializeShow(newShow){
 		updateSndCuelist();
 		updateStatusBar();
 
-		updatePatchList();
+		// updatePatchList();
 
 		lxActiveCue = 0;
 		$("#lx_next_cue").val(lxActiveCue);
@@ -625,12 +646,6 @@ function setupGui(){
       }
     });
 
-	//setup the patch list popup
-	$("#patchlist tbody").empty();
-	for (var i = 1; i <= 512; i++) {
-    	var row = '<tr class="patch_row" data-dim="'+i+'"><td>'+i+'</td><td><input type="number" min="1" max="'+show.channels+'" class="patch_slider"></td><td><select></select></td><td class="ch_details"></td></tr>';
-      	$("#patchlist tbody").append(row);
-    }
 
 }
 
@@ -1178,6 +1193,8 @@ function sndDelete(){
 }
 
 
+
+
 //********* PATCH FUNCTIONS *********
 function showPatchWindow(){
 	console.log("showing patch window");
@@ -1212,8 +1229,7 @@ function patchReset(){
 					}
 				});
 				$(".patch_row select").val("Standard");
-				updateTempPatch();
-
+				// updateTempPatch();
 
 			}else{
 				bootbox.alert("Please choose a valid number of channels: 1-96");
@@ -1238,7 +1254,7 @@ function patchClear(){
 				$(".patch_slider").val("");
 				$(".patch_slider").attr("max", show.channels);
 				$(".patch_row select").val("Standard");
-				updateTempPatch();
+				// updateTempPatch();
 
 			}else{
 				bootbox.alert("Please choose a valid number of channels: 1-96");
@@ -1250,118 +1266,169 @@ function patchClear(){
 
 
 function updatePatchList(){
-	//load the dropdown list of types and add it to the patch rows
-	var types = "";
-	$.each( show.types, function( type, type_data ){
-		types += '<option class="form-control" value="'+type+'">'+type+'</option>';
-	});
-	$(".patch_row select").empty().append(types);
 
-	//reset some things...
-	$(".patch_row input, .patch_row select").prop('disabled', false);	//just reset then
-	$(".patch_row option").prop("selected", false);
-	$(".patch_row .ch_details").text("");
+	// clear the list completely
+	//setup the patch list popup
+	console.log(tempPatch);
 	
-	
+	$("#patchlist tbody").empty();
 
-	//update the values and type selection in the patch display to current values
-	// for (var c = 1; c < Object.keys(tempPatch).length; c++) {
-	// console.log(tempPatch);
 	$.each( tempPatch, function( c, patch_data ){
 		c=parseInt(c);
-		// console.log(c);
-		// console.log(patch_data);
-		// console.log("chan / dimmers: " + c +" / "+ patch_data.dim);
+		console.log("chan / dimmers:", c , patch_data.dim);
 		var type = 	patch_data.type;
-		// console.log(type);
-
 		var type_channels = show.types[type].channels;
-		// console.log(type_channels);
+		
+    	var row = '<tr class="patch_row" data-ch="'+c+'">';
+		row += '<td>'+(c+1)+'</td>';
+		row += '<td><input type="number" min="1" max="512" class="patch_dimmer" value="'+patch_data.dim+'"/></td>';
+		
+		row += '<td><select class="ch_type">';
+		$.each( show.types, function( rowtype, type_data ){
+			var selected = type==rowtype ? "selected" : "";
+			row += '<option class="form-control" value="'+rowtype+'" '+selected+'>'+rowtype+'</option>';
+		});
+		row += '</select></td>';
+		
+		row += '<td class="dim_range"></td>';
+		
+		row += '</tr>';
+		$("#patchlist tbody").append(row);
+    });
+	
 
-		// //also change the next few rows if needed, and bump up the counter...
-		for (var i = 0; i < type_channels.length; i++) {
-			var row = $(".patch_row[data-dim='"+parseInt(patch_data.dim + i)+"']");
-		// 	// console.log(row);
-			row.find("input.patch_slider").val(c+1+i);
-			row.find("option[value='"+type+"']").prop("selected", true);
-			row.find(".ch_details").text(type_channels[i]);
-			
-			if(i>0){	//for any channels above the first channel
-				console.log("disabling ch: " + i);
-				row.find("input.patch_slider").val("");	//clear it out instead 
-				// row.find("input.patch_slider").attr('disabled', 'disabled');
-				// row.find("select").attr('disabled', 'disabled');
-			}
-			
+	// ALSO UPDATE THE RANGES ON EACH CHANNEL ROW
+	updateAllPatchRanges();
+
+}
+
+function updateAllPatchRanges(){
+	$.each( tempPatch, function( c, patch_data ){
+		updatePatchRowRange(c);
+	});
+	checkRangeConflicts();
+}
+
+function updatePatchRowRange(rowID, checkConflicts){
+	var row = $(".patch_row[data-ch='"+ rowID +"']");
+	var start_dim = parseInt(row.find(".patch_dimmer").val());
+	var type = row.find("select.ch_type").val();
+	var type_channels = show.types[type].channels;
+
+	var range = "";
+	for(var i=0; i<type_channels.length; i++ ){
+		if(type_channels[i]){
+			range += "<span class='range_dim'  data-dim='"+(start_dim+i)+"' data-ch='"+rowID+"'>";
+			range += (start_dim+i)
+			range += "</span> "
 		}
+	}
+	row.find(".dim_range").html(range);
+
+	if(checkConflicts) checkRangeConflicts();
+}
+
+function checkRangeConflicts(){
+	$("#patchlist .range_dim").removeClass("conflict");
+	
+	$("#patchlist .range_dim").each(function(){
+		var $item = $(this);
+		var dim = $item.data('dim');
+		var ch = $item.data('ch');
+		// console.log("checking conflicts for dimmer", dim);
+		
+		$("#patchlist .range_dim").each(function(){
+			var $check_item = $(this);
+			var check_dim = $check_item.data('dim');
+			var check_ch = $check_item.data('ch');
+			if(ch != check_ch && dim==check_dim){
+				// console.log("conflict!")
+				$item.addClass("conflict");
+				$check_item.addClass("conflict");
+			}
+		});
+
 	});
 }
 
-
-
-
 function updateTempPatch(){
-	console.log("updatting temp patch: ");
-	console.log(tempPatch);
-	var buildPatch = {};
-	// $(".patch_row").each(function(){
-	for (var c = 1; c <= 512; c++) {
-		// console.log("dimmer: " + c);
-		var row = $(".patch_row[data-dim='"+ c +"']");
+	// console.log("updatting temp patch: ");
+	// console.log(tempPatch);
+	// var buildPatch = {};
+	// // $(".patch_row").each(function(){
+	// for (var c = 1; c <= 512; c++) {
+	// 	// console.log("dimmer: " + c);
+	// 	var row = $(".patch_row[data-dim='"+ c +"']");
 		
-		var type = row.find("select").val();
-		var type_channels = show.types[type].channels;
-		// console.log("num channels: " + type_channels.length);
+	// 	var type = row.find("select").val();
+	// 	var type_channels = show.types[type].channels;
+	// 	// console.log("num channels: " + type_channels.length);
 
-		//also change the next few rows if needed, and bump up the counter...
-		for (var i = 0; i < type_channels.length; i++) {
-			row = $(".patch_row[data-dim='"+ (c+i) +"']");
-			// console.log(row);
+	// 	//also change the next few rows if needed, and bump up the counter...
+	// 	for (var i = 0; i < type_channels.length; i++) {
+	// 		row = $(".patch_row[data-dim='"+ (c+i) +"']");
+	// 		// console.log(row);
 			
-			var dimmer = row.data("dim");
-			var chan = parseInt(row.find(".patch_slider").val())-1;
+	// 		var dimmer = row.data("dim");
+	// 		var chan = parseInt(row.find(".patch_slider").val())-1;
 			
-			// row.find("input.patch_slider").val(c+1+i);
-			// row.find("option[value='"+type+"']").prop("selected", true);
-			// row.find(".ch_details").text(type_channels[i]);
+	// 		// row.find("input.patch_slider").val(c+1+i);
+	// 		// row.find("option[value='"+type+"']").prop("selected", true);
+	// 		// row.find(".ch_details").text(type_channels[i]);
 			
-			// if(i>0){	//for any channels above the first channel
-			// 	console.log("disabling ch: " + i);
-			// 	row.find("input.patch_slider").val("");	//clear it out instead 
-			// 	row.find("input.patch_slider").attr('disabled', 'disabled');
-			// 	row.find("select").attr('disabled', 'disabled');
-			// }
+	// 		// if(i>0){	//for any channels above the first channel
+	// 		// 	console.log("disabling ch: " + i);
+	// 		// 	row.find("input.patch_slider").val("");	//clear it out instead 
+	// 		// 	row.find("input.patch_slider").attr('disabled', 'disabled');
+	// 		// 	row.find("select").attr('disabled', 'disabled');
+	// 		// }
 			
 
-			if(dimmer!==0 && !isNaN(dimmer) && !isNaN(chan)){
-				var instrument = {
-					"dim":dimmer,
-					"type":type
-				};
-				// console.log("Chan: "+chan);
-				// console.log(instrument);
-				buildPatch[chan] = instrument;	//assign it back to the tempPatch
-			}
+	// 		if(dimmer!==0 && !isNaN(dimmer) && !isNaN(chan)){
+	// 			var instrument = {
+	// 				"dim":dimmer,
+	// 				"type":type
+	// 			};
+	// 			// console.log("Chan: "+chan);
+	// 			// console.log(instrument);
+	// 			buildPatch[chan] = instrument;	//assign it back to the tempPatch
+	// 		}
 
-			if(i === (type_channels.length-1)){
-				// console.log("incrementing outer counter c to c+i: " + i);
-				c = (c+i);	//update the outer loop to the counter of the inner.
-			}
-		}
+	// 		if(i === (type_channels.length-1)){
+	// 			// console.log("incrementing outer counter c to c+i: " + i);
+	// 			c = (c+i);	//update the outer loop to the counter of the inner.
+	// 		}
+	// 	}
 
-	}
-	console.log(buildPatch);
-	tempPatch = buildPatch;	//assign it back to temp
-	updatePatchList();
+	// }
+	// console.log(buildPatch);
+	// tempPatch = buildPatch;	//assign it back to temp
+	// updatePatchList();
 }
 
 function savePatch(){
-	updateTempPatch();
+	// updateTempPatch();
+	tempPatch={};
+	$("#patchlist .patch_row").each(function(){
+		var row = $(this);
+		var chan = row.data("ch");
+		var dimmer = parseInt(row.find(".patch_dimmer").val())-1;
+		var type = row.find(".ch_type").val();
+		var instrument = {
+			"dim":dimmer,
+			"type":type
+		};
+		console.log("Adding Patch: ", chan, instrument);
+		tempPatch[chan] = instrument;	//assign it back to the tempPatch
+	});
+
 	show.patch = tempPatch;	//assign it all back to the main show patch "saving" it.
 	
 	api.send( 'sendShow', show );	//send back to main just in case...
 	initializeShow(show);	//at this end, reinit the UI
 }
+
+//  ***** END PATCH
 
 
 

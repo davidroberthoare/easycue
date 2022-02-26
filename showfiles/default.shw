@@ -1,13 +1,13 @@
 {
   "info": {},
-  "channels": 48,
+  "channels": 24,
   "patch": {
     "0": {
       "dim": 31,
       "type": "I-RGB"
     },
     "1": {
-      "dim": 36,
+      "dim": 33,
       "type": "I-RGB"
     },
     "2": {

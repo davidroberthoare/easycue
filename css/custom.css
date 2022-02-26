@@ -196,9 +196,19 @@
   }
 
   #patchlist input{
-    width: 40px;
+    width: 50px;
     text-align: center;
   }
+  #patchlist .dim_range{
+    width: 100px;
+    overflow-wrap: anywhere;
+  }
+
+  #patchlist .range_dim.conflict{
+    color:red;
+    font-weight: bold;
+  }
+
   #status-mid{
     font-weight: bold;
   }
