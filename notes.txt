@@ -11,3 +11,9 @@ electron-packager . --overwrite --platform=darwin --arch=x64 --icon=./images/drh
 
 windows:
 electron-packager . --overwrite --platform=win32 --arch=ia32 --icon=./images/drhmedia.ico
+
+
+
+NEW Electron-Build: 
+ yarn dist
+ settings in package.json from here: https://www.electron.build/configuration/configuration 

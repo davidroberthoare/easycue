@@ -6,7 +6,9 @@
   "url": "https://davidhoare.net/easycue/",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "repository": "https://github.com/davidroberthoare/easycue",
   "keywords": [
@@ -24,6 +26,14 @@
   },
   "devDependencies": {
     "electron": "^16.0.7",
+    "electron-builder": "^22.14.13",
     "electron-rebuild": "^3.2.7"
+  },
+  "build": {
+    "appId": "com.easycue.app",
+    "copyright": "Copyright © year ${author}",
+    "win":{
+      "target": "portable"
+    }
   }
 }
