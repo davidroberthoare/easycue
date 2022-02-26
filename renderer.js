@@ -1,53 +1,21 @@
-// This file is required by the index.html file and will
-// be executed in the renderer process for that window.
-// All of the Node.js APIs are available in this process.
-console.log("renderer.js loaded");
+// ******* RENDERER
 
+// ******** GLOBAL VARIABLES
+var settings = getSettingsFromMain().then(function(){
+	startUp();
+});
+console.log("RENDERER SETTINGS", settings)
 
-// filesystem
- var remote = require('electron').remote;
- var dialog = remote.dialog; 
- var fs = require('fs');
- var app = remote.app;
-
-
-var settings = remote.getGlobal('sharedObj').settings;
-console.log(settings);	// getting the global variable...
-
-
-//analytics
-var ua = require('universal-analytics');
-if(settings.userid === undefined || settings.userid === ""){	//if it doesn't exist, then create and store a new userid
-	settings.userid = getUUID();
-	updateSettings();
-}
-var visitor = ua('UA-90364369-1', settings.userid, {strictCidFormat: false});
-visitor.event("easycue", "load").send();
-
-
-var lxInterval = [];	//interval timer for slider GUI updates
-
-var timers = [];	//for tracking setTimout (audio) timers
-
-// var devices = {
-// 	"enttec-usb-dmx-pro" : "EntTec USB DMX Pro"
-// }
-
-// DMX JAVASCRIPT
-var DMX = require('./dmx');
-var A = DMX.Animation;
-var currentAnim = null;
-var dmx = new DMX();
-var universe = dmx.addUniverse('demo', 'null');
-// var universe = dmx.addUniverse('demo', 'enttec-open-usb-dmx', '/dev/cu.usbserial-AL00DG7I');
-// var universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', '/dev/cu.usbserial-EN189208');
-var live = universe.universe;
+var live = false;	//start false until it is initialized properly
 
 
 var show = {};	//global variable for storing active show data
 var tempPatch = {};	//used to temporarily store the patch while working on it...
 
 var copied_levels = {};	//used for temporarily copying one set of levels to another via the UI LX_Popup
+
+var lxInterval = [];	//interval timer for slider GUI updates
+var timers = [];	//for tracking setTimout (audio) timers
 
 var lxActiveCue = 0;
 var afTimer = null;
@@ -60,29 +28,9 @@ var previousStatus = "";	//for statusBar updates
 
 //jquery READY function
 $(function() {
+	
 
-
-	//***** LOAD THE SHOW
-	try{	
-		if(settings.activeFile !== undefined && settings.activeFile !== ""){
-			bootbox.confirm("Would you like to load the last used file: " + settings.activeFile, function(answer){
-				if(answer === true){
-					readShowFile(settings.activeFile);
-				}else{
-					readShowFile('new');
-				}
-			});
-		}else{
-			readShowFile('new');
-		}
-		console.log(show);
-	}catch (err) {
-		bootbox.alert("error: " + err);
-	}
-
-	//***** activated last-used device
-	chooseDeviceType(settings.deviceType);
-	// chooseDeviceType("null");
+	
 
 // ******** GUI LISTENERS
 	
@@ -118,21 +66,42 @@ $(function() {
 	  saveFile();
 	});
 
-	$("#updatePatch").click(function(){
-	  updateTempPatch();
-	});
+	// $("#updatePatch").click(function(){
+	//   updateTempPatch();
+	// });
 
 	$("#savePatch").click(function(){
 	  savePatch();
 	});
 
-	$('.patch_sliders').keyup(function(e){
-	    if(e.keyCode == 13)
-	    {
-	        event.stopPropagation();
-	        event.preventDefault();
-	        $(".patch_sliders[data-chan='"+($(this).data("chan")+1)+"']").focus().select();
-	    }
+	$('#patchlist').on('change', '.patch_dimmer', function(e){
+		console.log("patch changed");
+
+		// error check the value
+		var val = $(this).val();
+		val = parseInt(val);
+		if(isNaN(val)){
+			$(this).val(1);
+		}else if(val>512){
+			$(this).val(512);
+		}else if(val<0){
+			$(this).val(1);
+		}else{
+			$(this).val(val);
+		}
+
+		var ch = parseInt($(this).closest(".patch_row").data("ch"));
+		console.log("updating patch row", ch);
+		updatePatchRowRange(ch);
+		checkRangeConflicts();
+	});
+
+	$('#patchlist').on('change', '.ch_type', function(e){
+		console.log("patch TYPE changed");
+		var ch = parseInt($(this).closest(".patch_row").data("ch"));
+		console.log("updating patch row", ch);
+		updatePatchRowRange(ch);
+		checkRangeConflicts();
 	});
 
 	$("#lx_add_cue").click(function(){
@@ -174,18 +143,17 @@ $(function() {
 	  this.select();
 	});
 
-	$('.chan_level').change(function() {
+	$('table.chan_sliders').on("change", ".chan_level", function() {
 		// $(".chan_level[data-chan='"+chan+"']").val(newvalue);
 		if($(this).val()==="")
 			$(this).val(0);
 		var chan = $(this).data("chan");
 		var newvalue = $(this).val();
-		updateSlider(chan, newvalue);
-		for (var i = 0; i < show.patch[chan]['dims'].length; i++) {
-			var patchedChan = show.patch[chan]['dims'][i]-1;
-			// console.log("patched chan: " + patchedChan);
-			universe.update({[patchedChan]: percent_to_dmx(newvalue)});
-		}
+		console.log("chan_level CHANGE",chan, newvalue );
+
+		var patchedChan = show.patch[chan].dim - 1;
+		api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
+		getLive();
 	});
 
 
@@ -366,7 +334,7 @@ $(function() {
 		console.log($(this).val());
 		var cueNum = $(this).closest("tr").data("lx");
 		var dataPart = $(this).data("part");
-		var value = parseInt($(this).val());
+		var value =(dataPart=="name" || dataPart=="desc") ? $(this).val() : parseInt($(this).val());
 		var chan = (dataPart=="chan") ? $(this).data("chan") : null;
 		
 		if(chan!== null){
@@ -513,13 +481,13 @@ $(function() {
 	
 	$("#snd_datagrid").on('click','.snd_file_btn', function(){
 		console.log("open button clicked");
-		var file = readFile();
-		console.log(file);
-		if(file === false) return;
-		// var cueNum = $(this).data("snd");
-		$(this).closest("tr").find("span[data-part='file']").text(file.path);
-		var cueNum = $(this).closest("tr").data("snd");
-		updateSndData(cueNum, "file", file.path);
+		// var file = readFile();
+		// console.log(file);
+		// if(file === false) return;
+		var cueNum = $(this).data("snd");
+
+		chooseSoundFile(cueNum);
+
 	});
 
 	$("#snd_datagrid").on('click','.snd_file_play', function(){
@@ -540,71 +508,71 @@ $(function() {
 
 	//******* patch listeners
 	$("#patch_reset").click(function(){ patchReset(); });
-	$("#patch_clear").click(function(){ patchClear(); });
+	$("#patch_clear").click(function(){ patchReset(true); });
 
-	$(".patch_slider").on("change", function(){
-		//validate max/min and numeric
-		var val = $(this).val();
-		val = parseInt(val);
-		if(isNaN(val)){
-			$(this).val("");
-		}else if(val>show.channels){
-			$(this).val(show.channels);
-		}else if(val<0){
-			$(this).val("");
-		}else{
-			$(this).val(val);
-		}
-	});
+	// $(".patch_slider").on("change", function(){
+	// 	//validate max/min and numeric
+	// 	var val = $(this).val();
+	// 	val = parseInt(val);
+	// 	if(isNaN(val)){
+	// 		$(this).val("");
+	// 	}else if(val>show.channels){
+	// 		$(this).val(show.channels);
+	// 	}else if(val<0){
+	// 		$(this).val("");
+	// 	}else{
+	// 		$(this).val(val);
+	// 	}
+	// });
 
 
-	var prev_val;
-	$(".patch_row select").focus(function() {
-	    prev_val = $(this).val();
-	})
-	.change(function(){ 
+	// var prev_val;
+	// $(".patch_row select").focus(function() {
+	//     prev_val = $(this).val();
+	// })
+	// .change(function(){ 
 
-		var row = $(this).closest(".patch_row");
-		console.log(row);
+	// 	var row = $(this).closest(".patch_row");
+	// 	console.log(row);
 		
-		var currentVal = row.find("input.patch_slider").val();
-		console.log("row value: " + currentVal);
+	// 	var currentVal = row.find("input.patch_slider").val();
+	// 	console.log("row value: " + currentVal);
 
-		if(typeof currentVal !== "undefined" && currentVal !== "" && currentVal!==0){
+	// 	if(typeof currentVal !== "undefined" && currentVal !== "" && currentVal!==0){
 
-			var dimmer = row.data('dim');
-			var type = $(this).val();
-			console.log("newtype = " + type);
+	// 		var dimmer = row.data('dim');
+	// 		var type = $(this).val();
+	// 		console.log("newtype = " + type);
 
-			var type_channels = show.types[type].channels;
-			// console.log(type_channels);
+	// 		var type_channels = show.types[type].channels;
+	// 		// console.log(type_channels);
 
-			// //also change the next few rows if needed, and bump up the counter...
-			for (var i = 0; i < type_channels.length; i++) {
-				row = $(".patch_row[data-dim='"+parseInt(dimmer + i)+"']");
-			// 	// console.log(row);
-				// row.find("input.patch_slider").val(currentVal+1+i);
-				row.find("option[value='"+type+"']").prop("selected", true);
-				row.find(".ch_details").text(type_channels[i]);
+	// 		// //also change the next few rows if needed, and bump up the counter...
+	// 		for (var i = 0; i < type_channels.length; i++) {
+	// 			row = $(".patch_row[data-dim='"+parseInt(dimmer + i)+"']");
+	// 		// 	// console.log(row);
+	// 			// row.find("input.patch_slider").val(currentVal+1+i);
+	// 			row.find("option[value='"+type+"']").prop("selected", true);
+	// 			row.find(".ch_details").text(type_channels[i]);
 				
-				if(i>0){	//for any channels above the first channel
-					// console.log("disabling ch: " + i);
-					row.find("input.patch_slider").val("");	//clear it out instead 
-					// row.find("input.patch_slider").attr('disabled', 'disabled');
-					// row.find("select").attr('disabled', 'disabled');
-				}
+	// 			if(i>0){	//for any channels above the first channel
+	// 				// console.log("disabling ch: " + i);
+	// 				row.find("input.patch_slider").val("");	//clear it out instead 
+	// 				// row.find("input.patch_slider").attr('disabled', 'disabled');
+	// 				// row.find("select").attr('disabled', 'disabled');
+	// 			}
 				
-			}
-		}else{
-			$(this).val(prev_val);
-			console.log("returning false");
-			bootbox.alert("Please select a channel number first, then choose a type.");
-			return false;
-		}
+	// 		}
+	// 	}else{
+	// 		$(this).val(prev_val);
+	// 		console.log("returning false");
+	// 		bootbox.alert("Please select a channel number first, then choose a type.");
+	// 		return false;
+	// 	}
 
 
-		updateTempPatch();
-	});
+	// 	updateTempPatch();
+	// });
 
 });
 
@@ -612,17 +580,20 @@ $(function() {
 
 //********* GUI UPDATING FUNCTIONS
 
-function initializeShow(){
-	//load the first cue of the active show
-	universe.updateAll(0);
-	// universe.update(show.lx[0].levels);
+function initializeShow(newShow){	
+	console.log("INITIALIZING SHOW");
+	show = newShow;	//update the RENDERER GLOBAL
+
 	if(typeof show.lx !== "undefined"){
 		setupGui();
 		updateLxCuelist();
-		updateAllSliders();
+		// updateAllSliders();
+		getLive();
 		updateSndCuelist();
 		updateStatusBar();
-		
+
+		// updatePatchList();
+
 		lxActiveCue = 0;
 		$("#lx_next_cue").val(lxActiveCue);
 		lxCueGo(0);	//jump into the first cue
@@ -655,6 +626,7 @@ function setupGui(){
       max: 100,
       value: 0,
       slide: function( event, ui ) {
+		//   console.log("chan_slider SLIDE", ui.value);
         var newvalue = ui.value;
         var chan = parseInt($(this).data('chan'));
         var level_box = $(".chan_level[data-chan='"+chan+"']");
@@ -668,17 +640,12 @@ function setupGui(){
         // for (var i = 0; i < show.patch[chan]['dims'].length; i++) {
 	        var patchedChan = show.patch[chan].dim - 1;
 			// console.log("patched chan: " + patchedChan);
-			universe.update({[patchedChan]: percent_to_dmx(newvalue)});
+			// universe.update({[patchedChan]: percent_to_dmx(newvalue)});
+			api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
         // }
       }
     });
 
-	//setup the patch list popup
-	$("#patchlist tbody").empty();
-	for (var i = 1; i <= 512; i++) {
-    	var row = '<tr class="patch_row" data-dim="'+i+'"><td>'+i+'</td><td><input type="number" min="1" max="'+show.channels+'" class="patch_slider"></td><td><select></select></td><td class="ch_details"></td></tr>';
-      	$("#patchlist tbody").append(row);
-    }
 
 }
 
@@ -695,7 +662,8 @@ function updateStatusBar(){
 function startLxUpdate(){
 	$(".chan_sliders input").prop( "disabled", true );
 	var interval = setInterval(function(){
-        updateAllSliders();
+        // updateAllSliders();
+		getLive();
     }, 100);
 	lxInterval.push(interval);
 }
@@ -703,8 +671,13 @@ function stopLxUpdate(){
 	console.log("stopping the LXUpdate interval: " + lxInterval);
 	$.each(lxInterval, function(i, interval){
 		clearInterval(interval);
+		var index = lxInterval.indexOf(interval);
+		if (index !== -1) {
+			lxInterval.splice(index, 1);
+		}
 	});
-	updateAllSliders();
+	// updateAllSliders();
+	getLive();
 	$(".chan_sliders input").prop( "disabled", false );
 }
 
@@ -718,8 +691,9 @@ function updateAllSliders(){
 		updateSlider(ch, instrument);
 	});
 }
+
 function updateSlider(chan, instrument){
-	//dmx_to_percent(live[instrument.dim - 1])
+	// console.log("updating slider", chan, instrument);
 	var level_data = {};
 	var instrument_type = instrument.type;
 	
@@ -800,6 +774,7 @@ function updateLxCuelist(){
 }
 
 function lxFinishedCue(){
+	console.log("lxFinishedCue")
 	stopLxUpdate();
 	setLxCueStatus(lxActiveCue, "active");
 	$("#lx_next_cue").val(lxActiveCue+1);
@@ -943,7 +918,9 @@ function lxCueGo(time){
 		//ACTUALLY RUN THE FADE
 		console.log("attempting to start fade with this data:");
 		console.log(fullLevels);
-		new A().add(fullLevels, time).run(universe, lxFinishedCue);
+		
+		// new A().add(fullLevels, time).run(universe, lxFinishedCue);	// NOTE --> NOW MOVED TO MAIN
+		api.send( 'runDmxAnimation', {levels: fullLevels, time: time} );
 
 
 		//also trigger a sound cue if there is one linked
@@ -1164,9 +1141,11 @@ function lxDelete(){
 	}
 }
 
+
 function updateSndData(cueNum, dataPart, value){
 	console.log(arguments);
 	show.snd[cueNum][dataPart] = value;
+
 }
 
 
@@ -1214,6 +1193,8 @@ function sndDelete(){
 }
 
 
+
+
 //********* PATCH FUNCTIONS *********
 function showPatchWindow(){
 	console.log("showing patch window");
@@ -1223,334 +1204,432 @@ function showPatchWindow(){
 	$('#patchwindow').modal();
 }
 
+function patchReset(zero){
+	console.log("getting channel number");
+	bootbox.prompt({
+		title: "How many LX Control Sliders? (1-96)",
+		inputType: 'number',
+		callback: function (result) {
+			console.log(result);
+			if(result>0 && result<= 96){
+				show.channels = result;
 
-function patchReset(){
-	console.log("resetting patch");
-	$(".patch_row").each(function(){
-		var i = $(this).data("dim");
-		console.log(i);
-		// $(".patch_slider").val(0);	//set them all to 0 first, then...
-		// console.log($(".patch_row[data-dim='"+i+"'] input" ));
-		if(i<=show.channels){
-			$(this).find(".patch_slider").val(i);
-		}else{
-			$(this).find(".patch_slider").val("");
+				console.log("resetting patch for channels:", show.channels);
+				tempPatch = {};
+				for (let index = 0; index < result; index++) {
+					tempPatch[index] = {
+						"dim": (zero==true) ? 0 : (index+1),
+						"type":"Standard"
+					};
+				}
+
+				updatePatchList();
+				// $(".patch_dimmer").attr("max", show.channels);
+				// $(".patch_row").each(function(){
+				// 	var i = $(this).data("dim");
+				// 	console.log(i);
+				// 	if(i<=show.channels){
+				// 		$(this).find(".patch_dimmer").val(i);
+				// 	}else{
+				// 		$(this).find(".patch_dimmer").val("");
+				// 	}
+				// });
+				// $(".patch_row select").val("Standard");
+
+			}else{
+				bootbox.alert("Please choose a valid number of channels: 1-96");
+			}
 		}
 	});
-	$(".patch_row select").val("Standard");
-	updateTempPatch();
+
+
 }
 
 function patchClear(){
-	console.log("clearing patch");
-	$(".patch_slider").val("");
-	$(".patch_row select").val("Standard");
-	updateTempPatch();
+
+	bootbox.prompt({
+		title: "How many LX Control Sliders? (1-96)",
+		inputType: 'number',
+		callback: function (result) {
+			console.log(result);
+			if(result>0 && result<= 96){
+				show.channels = result;
+			
+				console.log("clearing patch");
+				$(".patch_dimmer").val("");
+				$(".patch_dimmer").attr("max", show.channels);
+				$(".patch_row select").val("Standard");
+				// updateTempPatch();
+
+			}else{
+				bootbox.alert("Please choose a valid number of channels: 1-96");
+			}
+		}
+	});
+
 }
 
 
 function updatePatchList(){
-	//load the dropdown list of types and add it to the patch rows
-	var types = "";
-	$.each( show.types, function( type, type_data ){
-		types += '<option class="form-control" value="'+type+'">'+type+'</option>';
-	});
-	$(".patch_row select").empty().append(types);
 
-	//reset some things...
-	$(".patch_row input, .patch_row select").prop('disabled', false);	//just reset then
-	$(".patch_row option").prop("selected", false);
-	$(".patch_row .ch_details").text("");
+	// clear the list completely
+	//setup the patch list popup
+	console.log(tempPatch);
 	
-	
+	$("#patchlist tbody").empty();
 
-	//update the values and type selection in the patch display to current values
-	// for (var c = 1; c < Object.keys(tempPatch).length; c++) {
-	// console.log(tempPatch);
 	$.each( tempPatch, function( c, patch_data ){
 		c=parseInt(c);
-		// console.log(c);
-		// console.log(patch_data);
-		// console.log("chan / dimmers: " + c +" / "+ patch_data.dim);
+		console.log("chan / dimmers:", c , patch_data.dim);
 		var type = 	patch_data.type;
-		// console.log(type);
-
 		var type_channels = show.types[type].channels;
-		// console.log(type_channels);
+		
+    	var row = '<tr class="patch_row" data-ch="'+c+'">';
+		row += '<td>'+(c+1)+'</td>';
+		row += '<td><input type="number" min="1" max="512" class="patch_dimmer" value="'+patch_data.dim+'"/></td>';
+		
+		row += '<td><select class="ch_type">';
+		$.each( show.types, function( rowtype, type_data ){
+			var selected = type==rowtype ? "selected" : "";
+			row += '<option class="form-control" value="'+rowtype+'" '+selected+'>'+rowtype+'</option>';
+		});
+		row += '</select></td>';
+		
+		row += '<td class="dim_range"></td>';
+		
+		row += '</tr>';
+		$("#patchlist tbody").append(row);
+    });
+	
 
-		// //also change the next few rows if needed, and bump up the counter...
-		for (var i = 0; i < type_channels.length; i++) {
-			var row = $(".patch_row[data-dim='"+parseInt(patch_data.dim + i)+"']");
-		// 	// console.log(row);
-			row.find("input.patch_slider").val(c+1+i);
-			row.find("option[value='"+type+"']").prop("selected", true);
-			row.find(".ch_details").text(type_channels[i]);
-			
-			if(i>0){	//for any channels above the first channel
-				// console.log("disabling ch: " + i);
-				row.find("input.patch_slider").val("");	//clear it out instead 
-				// row.find("input.patch_slider").attr('disabled', 'disabled');
-				// row.find("select").attr('disabled', 'disabled');
-			}
-			
+	// ALSO UPDATE THE RANGES ON EACH CHANNEL ROW
+	updateAllPatchRanges();
+
+}
+
+function updateAllPatchRanges(){
+	$.each( tempPatch, function( c, patch_data ){
+		updatePatchRowRange(c);
+	});
+	checkRangeConflicts();
+}
+
+function updatePatchRowRange(rowID, checkConflicts){
+	var row = $(".patch_row[data-ch='"+ rowID +"']");
+	var start_dim = parseInt(row.find(".patch_dimmer").val());
+	var type = row.find("select.ch_type").val();
+	var type_channels = show.types[type].channels;
+
+	var range = "";
+	for(var i=0; i<type_channels.length; i++ ){
+		if(type_channels[i]){
+			range += "<span class='range_dim'  data-dim='"+(start_dim+i)+"' data-ch='"+rowID+"'>";
+			range += (start_dim+i)
+			range += "</span> "
 		}
+	}
+	row.find(".dim_range").html(range);
+
+	if(checkConflicts) checkRangeConflicts();
+}
+
+function checkRangeConflicts(){
+	$("#patchlist .range_dim").removeClass("conflict");
+	
+	$("#patchlist .range_dim").each(function(){
+		var $item = $(this);
+		var dim = $item.data('dim');
+		var ch = $item.data('ch');
+		// console.log("checking conflicts for dimmer", dim);
+		
+		$("#patchlist .range_dim").each(function(){
+			var $check_item = $(this);
+			var check_dim = $check_item.data('dim');
+			var check_ch = $check_item.data('ch');
+			if(ch != check_ch && dim==check_dim){
+				// console.log("conflict!")
+				$item.addClass("conflict");
+				$check_item.addClass("conflict");
+			}
+		});
+
 	});
 }
 
-
-
-
 function updateTempPatch(){
-	console.log("updatting temp patch: ");
-	console.log(tempPatch);
-	var buildPatch = {};
-	// $(".patch_row").each(function(){
-	for (var c = 1; c <= 512; c++) {
-		// console.log("dimmer: " + c);
-		var row = $(".patch_row[data-dim='"+ c +"']");
+	// console.log("updatting temp patch: ");
+	// console.log(tempPatch);
+	// var buildPatch = {};
+	// // $(".patch_row").each(function(){
+	// for (var c = 1; c <= 512; c++) {
+	// 	// console.log("dimmer: " + c);
+	// 	var row = $(".patch_row[data-dim='"+ c +"']");
 		
-		var type = row.find("select").val();
-		var type_channels = show.types[type].channels;
-		// console.log("num channels: " + type_channels.length);
+	// 	var type = row.find("select").val();
+	// 	var type_channels = show.types[type].channels;
+	// 	// console.log("num channels: " + type_channels.length);
 
-		//also change the next few rows if needed, and bump up the counter...
-		for (var i = 0; i < type_channels.length; i++) {
-			row = $(".patch_row[data-dim='"+ (c+i) +"']");
-			// console.log(row);
+	// 	//also change the next few rows if needed, and bump up the counter...
+	// 	for (var i = 0; i < type_channels.length; i++) {
+	// 		row = $(".patch_row[data-dim='"+ (c+i) +"']");
+	// 		// console.log(row);
 			
-			var dimmer = row.data("dim");
-			var chan = parseInt(row.find(".patch_slider").val())-1;
+	// 		var dimmer = row.data("dim");
+	// 		var chan = parseInt(row.find(".patch_slider").val())-1;
 			
-			// row.find("input.patch_slider").val(c+1+i);
-			// row.find("option[value='"+type+"']").prop("selected", true);
-			// row.find(".ch_details").text(type_channels[i]);
+	// 		// row.find("input.patch_slider").val(c+1+i);
+	// 		// row.find("option[value='"+type+"']").prop("selected", true);
+	// 		// row.find(".ch_details").text(type_channels[i]);
 			
-			// if(i>0){	//for any channels above the first channel
-			// 	console.log("disabling ch: " + i);
-			// 	row.find("input.patch_slider").val("");	//clear it out instead 
-			// 	row.find("input.patch_slider").attr('disabled', 'disabled');
-			// 	row.find("select").attr('disabled', 'disabled');
-			// }
+	// 		// if(i>0){	//for any channels above the first channel
+	// 		// 	console.log("disabling ch: " + i);
+	// 		// 	row.find("input.patch_slider").val("");	//clear it out instead 
+	// 		// 	row.find("input.patch_slider").attr('disabled', 'disabled');
+	// 		// 	row.find("select").attr('disabled', 'disabled');
+	// 		// }
 			
 
-			if(dimmer!==0 && !isNaN(dimmer) && !isNaN(chan)){
-				var instrument = {
-					"dim":dimmer,
-					"type":type
-				};
-				// console.log("Chan: "+chan);
-				// console.log(instrument);
-				buildPatch[chan] = instrument;	//assign it back to the tempPatch
-			}
+	// 		if(dimmer!==0 && !isNaN(dimmer) && !isNaN(chan)){
+	// 			var instrument = {
+	// 				"dim":dimmer,
+	// 				"type":type
+	// 			};
+	// 			// console.log("Chan: "+chan);
+	// 			// console.log(instrument);
+	// 			buildPatch[chan] = instrument;	//assign it back to the tempPatch
+	// 		}
 
-			if(i === (type_channels.length-1)){
-				// console.log("incrementing outer counter c to c+i: " + i);
-				c = (c+i);	//update the outer loop to the counter of the inner.
-			}
-		}
+	// 		if(i === (type_channels.length-1)){
+	// 			// console.log("incrementing outer counter c to c+i: " + i);
+	// 			c = (c+i);	//update the outer loop to the counter of the inner.
+	// 		}
+	// 	}
 
-	}
-	console.log(buildPatch);
-	tempPatch = buildPatch;	//assign it back to temp
-	updatePatchList();
+	// }
+	// console.log(buildPatch);
+	// tempPatch = buildPatch;	//assign it back to temp
+	// updatePatchList();
 }
 
 function savePatch(){
-	updateTempPatch();
+	// updateTempPatch();
+	tempPatch={};
+	$("#patchlist .patch_row").each(function(){
+		var row = $(this);
+		var chan = row.data("ch");
+		var dimmer = parseInt(row.find(".patch_dimmer").val());
+		var type = row.find(".ch_type").val();
+		var instrument = {
+			"dim":dimmer,
+			"type":type
+		};
+		console.log("Adding Patch: ", chan, instrument);
+		tempPatch[chan] = instrument;	//assign it back to the tempPatch
+	});
+
 	show.patch = tempPatch;	//assign it all back to the main show patch "saving" it.
-	initializeShow();
+	
+	api.send( 'sendShow', show );	//send back to main just in case...
+	initializeShow(show);	//at this end, reinit the UI
 }
 
-//****** DMX DEVICE functions
+//  ***** END PATCH
 
-function chooseDeviceType(deviceType){
-	statusNotice("Looking for device: " + deviceType);
 
-	if(deviceType == "enttec-usb-dmx-pro"){
-		var SerialPort = require('serialport');
-		var found = false;
-		
-		SerialPort.list(function (err, ports) {
-			ports.forEach(function(port) {
-				console.log(port.comName);
-				console.log(port.manufacturer);
-				if(port.comName.indexOf("usbserial") > -1 && port.manufacturer == "ENTTEC"){
-					console.log("found the device on a port");
-					found = port.comName;
+
+function startUp(){
+	console.log("STARTUP: current settings.activeFile", settings.activeFile);
+	//***** LOAD THE SHOW
+	try{	
+		if(settings.activeFile !== undefined && settings.activeFile !== ""){
+			bootbox.confirm("Would you like to load the last used file: " + settings.activeFile, function(answer){
+				if(answer === true){
+					// readShowFile(settings.activeFile);
+					api.send( 'openShowFile', settings.activeFile );
+					
+				}else{
+					// readShowFile('new');
+					api.send( 'newShowFile');
 				}
 			});
-
-			console.log("found? " + found);
-
-			if(found === false){
-				deviceNotFound(deviceType);
-				return false;
-			}else{
-				console.log("testing to see if port's open...");
-
-				var testport = new SerialPort(found, function (err) {
-					console.log("opening test port...");
-				  
-				  if (err) {
-				  	console.log("Error opening port: " + err.message);
-				  	deviceNotFound(deviceType, "Error opening port: " + err.message);
-					return false;
-				  }
-
-				  testport.close(function(){
-					  	console.log("testport closed... ready to continue");
-						console.log("attaching to universe:")
-						console.log(found)
-
-						universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', found);
-						statusNotice("Found and activated: " + deviceType, "good");
-						// // then activate whatever universe is loaded
-						settings.deviceType = deviceType;	//save it for next time...
-						updateSettings();
-						live = universe.universe;	//reset what 'live' is based on the chosen universe...
-						initializeShow();
-					});
-
-			  	});
-			}
-		  
-		});
+		}else{
+			// readShowFile('new');
+			api.send( 'newShowFile');
+		}
+		// console.log(show);
+	}catch (err) {
+		bootbox.alert("error: " + err);
 	}
-
-
-
-	else if(deviceType == "enttec-open-usb-dmx"){
-		deviceNotFound(deviceType, "Sorry! We currently do not have an active driver for this device.");
-	}
-	
-
-
-	else{	//null
-		deviceType = "null";
-		universe = dmx.addUniverse('demo', 'null');
-		statusNotice("Using offline test mode", "good");
-		settings.deviceType = deviceType;	//save it for next time...
-		updateSettings();
-		live = universe.universe;	//reset what 'live' is based on the chosen universe...
-		initializeShow();
-	}
-	
-	
-}
-
-function deviceNotFound(type, error){
-	error = (typeof error !== "undefined") ? error : "No "+type+" device could be found...";
-	bootbox.alert(error + "<br>Try restarting this program, or re-plugging the device into a different port and selecting the device type again, or restarting the computer.");
-	chooseDeviceType("null");
 }
 
 
 
-//******* UTILITY FUNCTIONS *************
-function updateSettings(){
-	remote.getGlobal('sharedObj').settings = settings;
+
+
+
+
+
+
+
+
+// ***** UTILITY FUNCTIONS
+// ***** UTILITY FUNCTIONS
+// ***** UTILITY FUNCTIONS
+
+
+dmx_to_percent = function(val){
+	return Math.round((val / 255) * 100);
 }
+
+percent_to_dmx = function(val){
+	return Math.round((val / 100) * 255);
+}
+
+componentToHex = function(c) {
+	var hex = c.toString(16);
+	return hex.length == 1 ? "0" + hex : hex;
+}
+
+rgbToHex = function(r, g, b) {
+	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+colorLevelsToHex = function(r,g,b){
+	r = percent_to_dmx(r);
+	g = percent_to_dmx(g);
+	b = percent_to_dmx(b);
+	return rgbToHex(r, g, b);
+}
+
+getUUID = function(){
+	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+		return v.toString(16);
+	});
+	console.log("generated uuid: " + uuid);
+	return uuid;
+}
+
+containsAll = function(needles, haystack){
+	var success = needles.every(function(val) {
+		return haystack.indexOf(val) !== -1;
+	});
+	return success;
+}
+
+
+
+
+
+
+// ********* TEST FUNCTION
+function test(p1, p2){
+	console.log("TESTING RENDERER", p1, p2);
+}
+
+
+// TODO! THESE HAVE BEEN MOVED TO MAIN... NEED TO BE ADJUSTED
 
 function readShowFile(filetype){
-	statusNotice("Reading File: " + filetype, false, false);
-	var file = readFile(filetype);
-	var showData = file.data;
-	if(JSON.parse(showData)){
-		show = JSON.parse(showData);
-		settings.activeFile = (filetype=='new') ? "" : file.path;
-		updateSettings();
+	// console.log("readShowFile", filetype);
+	// statusNotice("Reading File: " + filetype, false, false);
+	// var file = readFile(filetype);
+	// var showData = file.data;
+	// if(JSON.parse(showData)){
+	// 	show = JSON.parse(showData);
+	// 	settings.activeFile = (filetype=='new') ? "" : file.path;
+	// 	updateSettings();
 
-		initializeShow();
-	}else{
-		bootbox.alert("Invalid show file. Please choose another.");
-	}
+	// 	initializeShow();
+	// }else{
+	// 	bootbox.alert("Invalid show file. Please choose another.");
+	// }
 }
-
 
 function readFile(filetype){
-	// console.log("readfile: ");
-	console.log(arguments);
-	var file;
-	if(filetype === "new"){
-		console.log("reading default setup file");
-		file = [settings.defaultShowFile];
-	}
-	else if(filetype !== "" && filetype !== undefined){
-		file = [filetype];
-	}
-	else{
-		console.log("choosing a file:");
-		file = dialog.showOpenDialog({properties: ['openFile']});
+	// console.log(arguments);
+	// var file;
+	// if(filetype === "new"){
+	// 	console.log("reading default setup file");
+	// 	file = [settings.defaultShowFile];
+	// }
+	// else if(filetype !== "" && filetype !== undefined){
+	// 	file = [filetype];
+	// }
+	// else{
+	// 	console.log("choosing a file:");
+	// 	file = dialog.showOpenDialog({properties: ['openFile']});
 
-		if(file===undefined) return false;
-	}
+	// 	if(file===undefined) return false;
+	// }
 
-	try {
-		//test to see if settings exist
-		// var path = app.getPath('userData') + '/settings.json'
-		console.log("reading file:");
-		console.log(file);
+	// try {
+	// 	//test to see if settings exist
+	// 	console.log("reading file:");
+	// 	console.log(file);
 
-		var path = file[0];
-		console.log(path);
-		fs.openSync(path, 'r+'); //throws error if file doesn't exist
-		var data=fs.readFileSync(path); //file exists, get the contents
-		// console.log(data);
+	// 	var path = file[0];
+	// 	console.log(path);
+	// 	fs.openSync(path, 'r+'); //throws error if file doesn't exist
+	// 	var data=fs.readFileSync(path); //file exists, get the contents
+	// 	// console.log(data);
 
-		return {"path":path, "data":data};
+	// 	return {"path":path, "data":data};
 		
-	} catch (err) {
-		console.log("error! " + err);
-		return false;
-	}
+	// } catch (err) {
+	// 	console.log("error! " + err);
+	// 	return false;
+	// }
 }
 
-
 function saveFile(existing) {
-	console.log("saveFile called");
-	if(existing===true && settings.activeFile !== "" && settings.activeFile !== undefined){
-		fileName = settings.activeFile;
-		fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
-			console.log("file saved: " + fileName);
-			settings.activeFile = fileName;
-			updateSettings();
-			updateStatusBar();
-		});
-	}else{
+	// console.log("saveFile called");
+	// if(existing===true && settings.activeFile !== "" && settings.activeFile !== undefined){
+	// 	fileName = settings.activeFile;
+	// 	fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
+	// 		console.log("file saved: " + fileName);
+	// 		settings.activeFile = fileName;
+	// 		updateSettings();
+	// 		updateStatusBar();
+	// 	});
+	// }else{
 	
-		dialog.showSaveDialog({
-			filters: [{
-				name: 'show',
-				extensions: ['shw']
-			}]
-		}, function(fileName) {
-			if (fileName === undefined) return;
-			fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
-				dialog.showMessageBox({
-					message: "The file has been saved! :-)",
-					buttons: ["OK"]
-				});
-				settings.activeFile = fileName;
-				updateSettings();
-				updateStatusBar();
-			});
-		});
-	}
+	// 	dialog.showSaveDialog({
+	// 		filters: [{
+	// 			name: 'show',
+	// 			extensions: ['shw']
+	// 		}]
+	// 	}, function(fileName) {
+	// 		if (fileName === undefined) return;
+	// 		fs.writeFile(fileName, JSON.stringify(show, null, 2), function(err) {
+	// 			dialog.showMessageBox({
+	// 				message: "The file has been saved! :-)",
+	// 				buttons: ["OK"]
+	// 			});
+	// 			settings.activeFile = fileName;
+	// 			updateSettings();
+	// 			updateStatusBar();
+	// 		});
+	// 	});
+	// }
 }
 
 function requireJSON(filePath) {
-	try{
-  		return JSON.parse(fs.readFileSync(filePath, "utf8"));
-	}catch (err) {
-		console.log(err);
-	}
+	// try{
+  	// 	return JSON.parse(fs.readFileSync(filePath, "utf8"));
+	// }catch (err) {
+	// 	console.log(err);
+	// }
 }
+// END ADJUST
+
 
 Array.prototype.move = function(from,to){
 	console.log("moving from: " + from + " to: " + to);
   this.splice(to,0,this.splice(from,1)[0]);
   return this;
 };
+
 
 function statusNotice(text, type, permanent){
 	console.log("Status Notice: " + text);
@@ -1581,45 +1660,136 @@ function statusNotice(text, type, permanent){
 	}
 }
 
-function dmx_to_percent(val){
-	return Math.round((val / 255) * 100);
+
+
+// ******
+// GENERIC FUNCTION TO RUN RENDERER COMMANDS BASED ON MESSAGE FROM MAIN
+api.handle( 'callRendererFunction', ( event, data ) => function( event, data ) {
+    console.log( 'calling function', data )
+	window[data.func].apply(this, data.params);
+}); 
+
+
+
+
+// PASS SETTINGS BACK AND FORTH
+
+// SEND RENDERER settings back to MAIN
+function updateSettings(){
+    api.send( 'sendSettings', settings );
 }
 
-function percent_to_dmx(val){
-	return Math.round((val / 100) * 255);
+// receive settings pushed from Main
+api.handle( 'sendSettings', ( event, data ) => function( event, data ) {
+    console.log( 'received settings from MAIN', data )
+    settings = data;
+});
+
+// getting settings...may not be needed because they can be pushed using above 'sendsettings' listener
+async function getSettingsFromMain(){
+    const result = await api.send( 'getSettings');
+    console.log("received settings: ", result);
+    settings = result;
+};
+// END OF SETTINGS FUNCTIONS
+
+
+
+// PASS SETTINGS BACK AND FORTH
+
+// SEND RENDERER settings back to MAIN
+function updateShow(){
+    api.send( 'sendShow', show );
 }
 
-function componentToHex(c) {
-    var hex = c.toString(16);
-    return hex.length == 1 ? "0" + hex : hex;
-}
+// receive settings pushed from Main
+api.handle( 'sendShow', ( event, data ) => function( event, data ) {
+    console.log( 'received SHOW from MAIN', data )
+    if(data) show = data;
+});
 
-function rgbToHex(r, g, b) {
-    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
-}
-
-function colorLevelsToHex(r,g,b){
-	r = percent_to_dmx(r);
-	g = percent_to_dmx(g);
-	b = percent_to_dmx(b);
-	return rgbToHex(r, g, b);
-}
+// getting settings...may not be needed because they can be pushed using above 'sendsettings' listener
+async function getShowFromMain(){
+    const result = await api.send( 'getShow');
+    console.log("received show: ", result);
+    if(result) show = result;
+};
+// END OF SETTINGS FUNCTIONS
 
 
 
 
-function getUUID(){
-	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-	    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-	    return v.toString(16);
-	});
-	console.log("generated uuid: " + uuid);
-	return uuid;
-}
+// receive new soundFile from picker
+api.handle( 'fetchShowForSave', ( event, data ) => function( event, data ) {	//for main-initiated update
+	console.log( 'fetchShowForSave :: sending the current SHOW, with a save action', data );
+	
+	api.send( 'sendShow', {show : show, action : data.action} );	//send the SHOW back to MAIN, with an action for it to continue with...
 
-function containsAll(needles, haystack){
-	var success = needles.every(function(val) {
-    	return haystack.indexOf(val) !== -1;
-	});
-	return success;
-}
+});
+
+
+
+
+
+
+
+
+
+// Sync LIVE DMX universe data
+async function getLive(){
+    const result = await api.send( 'getLive');
+    // console.log("received LIVE: ", result);
+    console.log("received LIVE");
+    live = result;
+	updateAllSliders();
+};
+api.handle( 'sendLive', ( event, data ) => function( event, data ) {	//for main-initiated update
+    console.log( 'received LIVE from MAIN', data )
+    live = data;
+});
+
+
+// at the end of a DMX animation, this will be sent, with the updated live universe
+api.handle( 'lxFinishedCue', ( event, data ) => function( event, data ) {	//for main-initiated update
+    // console.log( 'received lxFinishedCue from MAIN', data )
+    live = data;
+	lxFinishedCue();
+});
+
+
+// trigger file-picker
+async function chooseSoundFile(cue){
+	api.send( 'chooseSoundFile', {cue:cue});
+};
+
+// receive new soundFile from picker
+api.handle( 'chosenSoundFile', ( event, data ) => function( event, data ) {	//for main-initiated update
+	console.log( 'received chosenSoundFile from MAIN', data );
+
+	// $(this).closest("tr").find("span[data-part='file']").text(file.path);
+	// var cueNum = $(this).closest("tr").data("snd");
+
+	updateSndData(data.cue, "file", data.file);
+	updateSndCuelist();
+});
+
+
+
+
+/**
+ * test  Sending messages to Main
+ * `data` can be a boolean, number, string, object, or array
+ */
+api.send( 'pingMain', 'RENDERER READY' );
+
+/**
+ * Receiving messages from Main
+ */
+api.handle( 'pingRenderer', ( event, data ) => function( event, data ) {
+    console.log( 'received from MAIN', data )
+});
+
+
+
+
+

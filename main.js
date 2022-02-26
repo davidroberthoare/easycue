@@ -59,13 +59,86 @@ function chooseDeviceType(deviceType) {
 		var SerialPort = require('serialport');
 		var found = false;
 
-		SerialPort.list(function (err, ports) {
+		// SerialPort.list(function (err, ports) {
+		// 	ports.forEach(function (port) {
+		// 		console.log(port.path);
+		// 		console.log(port.manufacturer);
+		// 		if (port.path.indexOf("usbserial") > -1 && port.manufacturer == "ENTTEC") {
+		// 			console.log("found the device on a port");
+		// 			found = port.path;
+		// 		}
+		// 	});
+
+		// 	console.log("found? " + found);
+
+		// 	if (found === false) {
+		// 		deviceNotFound(deviceType);
+		// 		return false;
+		// 	} else {
+		// 		console.log("testing to see if port's open...");
+
+		// 		var testport = new SerialPort(found, function (err) {
+		// 			console.log("opening test port...");
+
+		// 			if (err) {
+		// 				console.log("Error opening port: " + err.message);
+		// 				deviceNotFound(deviceType, "Error opening port: " + err.message);
+		// 				return false;
+		// 			}
+
+		// 			testport.close(function () {
+		// 				console.log("testport closed... ready to continue");
+		// 				console.log("attaching to universe:")
+		// 				console.log(found)
+
+		// 				universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', found);
+		// 				statusNotice("Found and activated: " + deviceType, "good");
+		// 				// // then activate whatever universe is loaded
+		// 				settings.deviceType = deviceType;	//save it for next time...
+		// 				// updateSettings();
+		// 				// live = universe.universe;	//reset what 'live' is based on the chosen universe...
+		// 				// initializeShow();
+		// 			});
+
+		// 		});
+		// 	}
+
+		// });
+
+
+
+
+		// NEW SERIALPORTS FUNCTION
+		SerialPort.list().then(function (ports) {
+
+			// foundPorts = [];
+			// // iterate through ports
+			// for (var i = 0; i < ports.length; i += 1) {
+			// 	var pid;
+			// 	// are we on windows or unix?
+			// 	if (ports[i].productId) {
+			// 		pid = ports[i].productId;
+			// 	} else if (ports[i].pnpId) {
+			// 		try {
+			// 			pid = '0x' + /PID_\d*/.exec(ports[i].pnpId)[0].substr(4);
+			// 		} catch (err) {
+			// 			pid = '';
+			// 		}
+			// 	} else {
+			// 		pid = '';
+			// 	}
+
+			// 	ports[i]._standardPid = pid;
+			// 	foundPorts.push(ports[i]);
+			// }
+
+
+
 			ports.forEach(function (port) {
-				console.log(port.comName);
-				console.log(port.manufacturer);
-				if (port.comName.indexOf("usbserial") > -1 && port.manufacturer == "ENTTEC") {
+				console.log("PORT", port);
+				if (port.manufacturer == "FTDI" && port.serialNumber && port.serialNumber.indexOf("EN") > -1) {
 					console.log("found the device on a port");
-					found = port.comName;
+					found = port.path;
 				}
 			});
 
@@ -103,7 +176,12 @@ function chooseDeviceType(deviceType) {
 				});
 			}
 
+
+		}).catch(function (error) { 
+			console.log("SERIALPORTS ERROR: ", error)
 		});
+
+
 	}
 
 
@@ -129,7 +207,7 @@ function chooseDeviceType(deviceType) {
 
 function deviceNotFound(type, error) {
 	error = (typeof error !== "undefined") ? error : "No " + type + " device could be found...";
-	doAlert(error + "<br>Try restarting this program, or re-plugging the device into a different port and selecting the device type again, or restarting the computer.");
+	doAlert(error + "\nTry restarting this program, or re-plugging the device into a different port and selecting the device type again, or restarting the computer.");
 	chooseDeviceType("null");
 }
 
@@ -183,7 +261,7 @@ const template = [
 				click(item, focusedWindow) {
 					console.log("menu clicked: " + item.label);
 					// showPatchWindow();
-					focusedWindow.webContents.send( 'callRendererFunction', {func:'showPatchWindow', params:[]} );
+					focusedWindow.webContents.send('callRendererFunction', { func: 'showPatchWindow', params: [] });
 				}
 			},
 			{
@@ -517,13 +595,13 @@ function startSaveFile(action) {
 function saveFile(existing) {
 	console.log("saveFile called", settings);
 	if (existing === true && settings.activeFile !== "" && settings.activeFile !== undefined) {
-		console.log("Saving EXISTING FILE", settings.activeFile )
+		console.log("Saving EXISTING FILE", settings.activeFile)
 		var fileName = settings.activeFile;
 		fs.writeFile(fileName, JSON.stringify(show, null, 2), function (err) {
-			if(err){
+			if (err) {
 				console.log(err);
 				return false;
-			}else{
+			} else {
 				console.log("file saved: " + fileName);
 				settings.activeFile = fileName;
 				updateSettings();
@@ -545,11 +623,11 @@ function saveFile(existing) {
 			var filename = result.filePath;
 			console.log("chose file", filename)
 			fs.writeFile(filename, JSON.stringify(show, null, 2), function (err) {
-			// fs.writeFile(filename, "testing 123", 'utf8', function (err) {
-				if(err){
+				// fs.writeFile(filename, "testing 123", 'utf8', function (err) {
+				if (err) {
 					console.log(err);
 					return false;
-				}else{
+				} else {
 					dialog.showMessageBox({
 						type: "info",
 						title: "Saved",
@@ -558,7 +636,7 @@ function saveFile(existing) {
 					});
 					settings.activeFile = filename;
 					updateSettings();
-					
+
 					updateStatusBar();
 				}
 			});
@@ -566,8 +644,8 @@ function saveFile(existing) {
 		}).catch(err => {
 			console.log(err)
 		})
-		
-		
+
+
 		// , function (fileName) {
 		// 	if (fileName === undefined) return;
 		// 	fs.writeFile(fileName, JSON.stringify(show, null, 2), function (err) {
@@ -652,7 +730,7 @@ ipcMain.handle('sendShow', async (event, data) => { //receive settings from rend
 	if (data.show) {
 		show = data.show;
 	}
-	
+
 	console.log('with ACTION', data.action)
 	if (data.action == 'saveAs') {
 		saveFile()
@@ -750,6 +828,7 @@ ipcMain.handle('newShowFile', async (event, data) => {
 
 // duplicate function: statusNotice
 function statusNotice(text, type, permanent) {
+	console.log("StatusNotice: " + text);
 	mainWindow.webContents.send('callRendererFunction', { func: 'statusNotice', params: [text, type, permanent] });
 }
 
