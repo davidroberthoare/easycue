@@ -5,29 +5,20 @@ const utils = require('./utils.js');
 
 
 // SET OPTIONS STORAGE
-const storage = require('electron-json-storage');
-console.log("storing settings in: " + app.getPath('userData'));
+const Store = require('electron-store');
+const store = new Store();
+console.log("storing settings in: ", app.getPath('userData'));
 
 
 //global variable.
 var settings = {
 	defaultShowFile: app.getAppPath() + "/showfiles/default.shw",
-	deviceType: "enttec-usb-dmx-pro",
+	// deviceType: "enttec-usb-dmx-pro",
+	deviceType: "null",
 	donated: "false",
 	userid: ""
 };
 
-
-storage.get('settings', function (error, data) {
-	console.log("got settings from storage:", data)
-	if (error) throw error;
-	console.log(data);
-	if (data) {
-		settings = data;  //set the stored values back into the global variable
-	}
-	//restore some constants just in case...
-	settings.defaultShowFile = app.getAppPath() + "/showfiles/default.shw";
-});
 
 
 // DMX FUNCTIONS
@@ -41,15 +32,12 @@ var Animator = DMX.Animation;
 
 var currentAnim = null;
 var dmx = new DMX();
-var universe = dmx.addUniverse('demo', 'null');
+// var universe = dmx.addUniverse('demo', 'null');
 // var universe = dmx.addUniverse('demo', 'enttec-open-usb-dmx', '/dev/cu.usbserial-AL00DG7I');
 // var universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', '/dev/cu.usbserial-EN189208');
 // var live = universe.universe;
 
 
-//***** activated last-used device
-// chooseDeviceType(settings.deviceType);
-chooseDeviceType("null");
 
 function chooseDeviceType(deviceType) {
 	console.log("chooseDeviceType", deviceType)
@@ -59,80 +47,8 @@ function chooseDeviceType(deviceType) {
 		var SerialPort = require('serialport');
 		var found = false;
 
-		// SerialPort.list(function (err, ports) {
-		// 	ports.forEach(function (port) {
-		// 		console.log(port.path);
-		// 		console.log(port.manufacturer);
-		// 		if (port.path.indexOf("usbserial") > -1 && port.manufacturer == "ENTTEC") {
-		// 			console.log("found the device on a port");
-		// 			found = port.path;
-		// 		}
-		// 	});
-
-		// 	console.log("found? " + found);
-
-		// 	if (found === false) {
-		// 		deviceNotFound(deviceType);
-		// 		return false;
-		// 	} else {
-		// 		console.log("testing to see if port's open...");
-
-		// 		var testport = new SerialPort(found, function (err) {
-		// 			console.log("opening test port...");
-
-		// 			if (err) {
-		// 				console.log("Error opening port: " + err.message);
-		// 				deviceNotFound(deviceType, "Error opening port: " + err.message);
-		// 				return false;
-		// 			}
-
-		// 			testport.close(function () {
-		// 				console.log("testport closed... ready to continue");
-		// 				console.log("attaching to universe:")
-		// 				console.log(found)
-
-		// 				universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', found);
-		// 				statusNotice("Found and activated: " + deviceType, "good");
-		// 				// // then activate whatever universe is loaded
-		// 				settings.deviceType = deviceType;	//save it for next time...
-		// 				// updateSettings();
-		// 				// live = universe.universe;	//reset what 'live' is based on the chosen universe...
-		// 				// initializeShow();
-		// 			});
-
-		// 		});
-		// 	}
-
-		// });
-
-
-
-
 		// NEW SERIALPORTS FUNCTION
 		SerialPort.list().then(function (ports) {
-
-			// foundPorts = [];
-			// // iterate through ports
-			// for (var i = 0; i < ports.length; i += 1) {
-			// 	var pid;
-			// 	// are we on windows or unix?
-			// 	if (ports[i].productId) {
-			// 		pid = ports[i].productId;
-			// 	} else if (ports[i].pnpId) {
-			// 		try {
-			// 			pid = '0x' + /PID_\d*/.exec(ports[i].pnpId)[0].substr(4);
-			// 		} catch (err) {
-			// 			pid = '';
-			// 		}
-			// 	} else {
-			// 		pid = '';
-			// 	}
-
-			// 	ports[i]._standardPid = pid;
-			// 	foundPorts.push(ports[i]);
-			// }
-
-
 
 			ports.forEach(function (port) {
 				console.log("PORT", port);
@@ -163,7 +79,7 @@ function chooseDeviceType(deviceType) {
 						console.log("testport closed... ready to continue");
 						console.log("attaching to universe:")
 						console.log(found)
-
+						dmx = new DMX();
 						universe = dmx.addUniverse('demo', 'enttec-usb-dmx-pro', found);
 						statusNotice("Found and activated: " + deviceType, "good");
 						// // then activate whatever universe is loaded
@@ -194,7 +110,8 @@ function chooseDeviceType(deviceType) {
 
 	else {	//null
 		deviceType = "null";
-		universe = dmx.addUniverse('demo', 'null', 1, { dmx_speed: 10 });
+		dmx = new DMX();
+		universe = dmx.addUniverse('demo', 'null', 1, { dmx_speed: 1 });
 		// statusNotice("Using offline test mode", "good");
 		settings.deviceType = deviceType;	//save it for next time...
 		// updateSettings();
@@ -212,6 +129,43 @@ function deviceNotFound(type, error) {
 }
 
 
+
+// LOAD past saved settings (if any) and choose the device based on that
+if(store.has('settings')){
+	data = store.get('settings');
+	console.log("read Settings from storage:", data)
+	// test for at least one property
+	if(data.defaultShowFile && data.deviceType) {
+		settings=data;	//assign it to the global
+	}else{
+		console.log("bad settings file")	//otherwise just go with the default defined above
+	}
+
+}else{
+	console.error("no Settings file");
+}
+//***** activated last-used device
+chooseDeviceType(settings.deviceType);
+// chooseDeviceType("null");
+
+// storage.get('settings', function (error, data) {
+// 	console.log("got settings from storage:", data)
+// 	if (error) {
+// 		console.error("error fetching settings", error, data);
+// 		throw error;
+// 	}
+// 	if (data) {
+// 		settings = data;  //set the stored values back into the global variable
+// 	}
+// 	//restore some constants just in case...
+// 	settings.defaultShowFile = app.getAppPath() + "/showfiles/default.shw";
+
+	
+// 	//***** activated last-used device
+// 	chooseDeviceType(settings.deviceType);
+// 	// chooseDeviceType("null");
+
+// });
 
 
 
@@ -344,20 +298,23 @@ const template = [
 		submenu: [
 			{
 				label: 'About EasyCue',
-				click() { window.open("about.html", "", "width=1000, height=650") }
+				click(item, focusedWindow) {
+					console.log("menu clicked: " + item.label);
+					focusedWindow.webContents.send( 'callRendererFunction', {func:'showAbout', params:[]} );
+				}
 			}
 			, {
 				label: 'Visit EasyCue online',
 				click() { require('electron').shell.openExternal('http://davidhoare.net/easycue') }
 			}
-			, {
-				label: 'TEST',
-				click(event, focusedWindow, focusedWebContents) {
-					console.log("test menu function clicked", event, focusedWindow);
-					test();
-					// focusedWindow.webContents.send( 'callRendererFunction', {func:'test', params:['foo', 'bar']} );
-				}
-			}
+			// , {
+			// 	label: 'TEST',
+			// 	click(event, focusedWindow, focusedWebContents) {
+			// 		console.log("test menu function clicked", event, focusedWindow);
+			// 		test();
+			// 		// focusedWindow.webContents.send( 'callRendererFunction', {func:'test', params:['foo', 'bar']} );
+			// 	}
+			// }
 		]
 	}
 ];
@@ -422,12 +379,13 @@ Menu.setApplicationMenu(menu)
 let mainWindow;
 
 
-const path = require('path')
+const path = require('path');
+const { setFdLimit } = require('process');
 
 function createWindow() {
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
-		width: 1410,
+		width: 1600,
 		height: 800,
 		'min-width': 500,
 		'min-height': 200,
@@ -476,12 +434,12 @@ app.on('window-all-closed', function () {
 
 
 app.on('quit', function () {
-	console.log("quitting...");
-	console.log(settings);
+	console.log("quitting...saving settings", settings);
 	//store default config settings
-	storage.set('settings', settings, function (error) {
-		if (error) throw error;
-	});
+	store.set('settings', settings);
+	// storage.set('settings', settings, function (error) {
+	// 	if (error) throw error;
+	// });
 });
 
 
@@ -540,32 +498,51 @@ function newShowFile() {
 	}
 }
 
-function openShowFile() {
-	console.log("choosing a file:");
-	dialog.showOpenDialog({ properties: ['openFile'] })
-		.then(result => {
-			console.log(result.canceled)
-			if (result.canceled) return false;
+function openShowFile(filepath) {
+	if(!filepath){
+		console.log("no file specified, so choosing...");
+		dialog.showOpenDialog({ properties: ['openFile'] })
+			.then(result => {
+				console.log(result.canceled)
+				if (result.canceled) return false;
 
-			console.log("chose file", result.filePaths[0])
-			var file = readFile(result.filePaths[0]);
-			// console.log("Opened file", file);
-			var newShow = JSON.parse(file.data)
-			if (newShow) {
-				settings.activeFile = file.path;
-				show = newShow;	//save to the MAIN global
-				updateSettings();
+				console.log("chose file", result.filePaths[0])
+				var file = readFile(result.filePaths[0]);
+				// console.log("Opened file", file);
+				var newShow = JSON.parse(file.data)
+				if (newShow) {
+					settings.activeFile = file.path;
+					show = newShow;	//save to the MAIN global
+					updateSettings();
 
-				initializeShow();
+					initializeShow();
 
-			} else {
-				doAlert("Invalid show file. Please choose another.");
-			}
+				} else {
+					doAlert("Invalid show file. Please choose another.");
+				}
 
-		}).catch(err => {
-			console.log(err)
-		})
+			}).catch(err => {
+				console.log(err)
+			})
+	
+	}else{
+		console.log("opening specified file", filepath)
+		var file = readFile(filepath);
+		// console.log("Opened file", file);
+		var newShow = JSON.parse(file.data)
+		if (newShow) {
+			settings.activeFile = file.path;
+			show = newShow;	//save to the MAIN global
+			updateSettings();
 
+			initializeShow();
+
+		} else {
+			doAlert("Invalid show file. Please choose another.");
+		}
+	}
+	
+	
 }
 
 
@@ -765,7 +742,7 @@ function sendShow() {	//send it to the renderer
 
 // *****UPDATE DMX UNIVERSE FROM RENDERER
 ipcMain.handle('updateUniverse', async (event, data) => { //return current live settings...
-	console.log("updateUniverse");
+	console.log("updateUniverse", data);
 	universe.update({ [data.patchedChan]: data.newvalue });
 })
 
@@ -784,14 +761,14 @@ function sendLive() {	//send it to the renderer
 // CHOOSE A FILE, triggered via REMOTE
 ipcMain.handle('chooseSoundFile', async (event, data) => { //return a request for the current LIVE DMX UNIVERSE...
 	console.log("chooseSoundFile", data.cue);
-
+	
 	dialog.showOpenDialog({ properties: ['openFile'] })
-		.then(result => {
-			console.log(result.canceled)
-			if (result.canceled) return false;
-
-			console.log("chose file", result.filePaths[0])
-			if (mainWindow && mainWindow.webContents) {
+	.then(result => {
+		console.log(result.canceled)
+		if (result.canceled) return false;
+		
+		console.log("chose file", result.filePaths[0])
+		if (mainWindow && mainWindow.webContents) {
 				mainWindow.webContents.send('chosenSoundFile', { file: result.filePaths[0], cue: data.cue });
 			}
 
@@ -848,6 +825,11 @@ function initializeShow() {
 	mainWindow.webContents.send('callRendererFunction', { func: 'initializeShow', params: [show] });	//start the GUI initializing
 }
 
+// ***** open a URL in the sustem browser
+ipcMain.handle('openUrl', async (event, data) => { //return a request for the current LIVE DMX UNIVERSE...
+	console.log("opening URL", data);
+	require('electron').shell.openExternal(data);
+})
 
 /**
  * Receiving test messages from Renderer

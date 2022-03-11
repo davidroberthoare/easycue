@@ -127,14 +127,16 @@
   }
   .lx_goto:before {
     display:    inline-block;   
-    width:    0;    
-    height:   0;  
-    border-top:   solid transparent;
-    border-bottom:  solid transparent;
-    border-left: solid green; 
-    border-width: 5px;
-    content:    ' ';
-    margin-right: 5px;
+    /* width:    0;     */
+    /* height:   0;   */
+    /* border-top:   solid transparent; */
+    /* border-bottom:  solid transparent; */
+    /* border-left: solid green;  */
+    /* border-width: 5px; */
+    content: '\25B6';
+    margin-right: 20px;
+    margin-left: 5px;
+    color: green;
   }
 
   td, th{
@@ -145,13 +147,19 @@
     font-weight: bold;
   }
 
-  .t_sm{ width:40px; }
+  .t_sm{ width:45px; }
   .t_med{ width:75px; }
   .t_lng{ width:150px; }
   .t_lng2{ width:400px; }
 
   .t_med, .t_lng, .t_lng2{
     text-align: left !important;
+  }
+
+  /* center the heading text... not a great solution */
+  th.ch_head.t_sm {
+    padding-right: 24px !important;
+    text-align: right;
   }
 
   .selected{ background-color: #eee !important; font-weight: bold;}
@@ -211,6 +219,18 @@
 
   #status-mid{
     font-weight: bold;
+  }
+
+
+
+  #aboutScreen{
+    position:fixed;
+    width:80%;
+    height:80%;
+    top:10%;
+    left:10%;
+    z-index: 99999;
+    display: none;
   }
 
 

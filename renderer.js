@@ -149,9 +149,9 @@ $(function() {
 			$(this).val(0);
 		var chan = $(this).data("chan");
 		var newvalue = $(this).val();
-		console.log("chan_level CHANGE",chan, newvalue );
+		var patchedChan = show.patch[chan].dim;
+		console.log("chan_level CHANGE",chan, newvalue, patchedChan);
 
-		var patchedChan = show.patch[chan].dim - 1;
 		api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
 		getLive();
 	});
@@ -222,13 +222,15 @@ $(function() {
 		//popuplate the popup
 		var col = {};
 		var custom_inputs = "";
+		var dimmer_offset = 0;
 		$.each(level_data, function(ch, level){
 
 			custom_inputs += '<label for="'+ch+'">'+ch+'</label>';
-			custom_inputs += '<input type="range" min="0" max="100" name="'+ch+'" value="'+level+'">';
+			custom_inputs += '<input type="range" min="0" max="100" name="'+ch+'" data-dimmeroffset="'+dimmer_offset+'" value="'+level+'">';
 			if(["Red", "Green", "Blue"].indexOf(ch) > -1){
 				col[ch] = level;
 			}
+			dimmer_offset+=1;
 		});
 		// console.log(col);
 
@@ -245,12 +247,17 @@ $(function() {
 	//deal with the possible channel level sliders in the popup, and save their values to live channel data
 	$("#lxPopup").on("input change", "input", function(){
 		popup = $("#lxPopup");
-
 		var chan = popup.data("chan");
 		var level = parseInt($(this).val());
 		var ch_type = $(this).prop('name');
+		var dimmer_offset = $(this).data('dimmeroffset');
 		var existing_levels = {};
-		console.log(level + " - " + ch_type);
+		console.log(chan, level ,ch_type, dimmer_offset);
+
+
+		var patchedChan = show.patch[chan].dim + dimmer_offset;
+		console.log("patched chan: " + patchedChan);
+		api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(level)} );
 
 		// depending on what type of popup it is, change different things...
 		if(popup.data('lxgrid_cue') === false){	//if it's a slider popup
@@ -490,7 +497,7 @@ $(function() {
 
 	});
 
-	$("#snd_datagrid").on('click','.snd_file_play', function(){
+	$("#snd_datagrid").on('dblclick','.snd_file_play', function(){
 		console.log("PLAY button clicked");
 		var cueNum = $(this).closest("tr").data("snd");
 		sndCueGo(cueNum);
@@ -638,7 +645,7 @@ function setupGui(){
         level_box.data("levels", levels);
 
         // for (var i = 0; i < show.patch[chan]['dims'].length; i++) {
-	        var patchedChan = show.patch[chan].dim - 1;
+	        var patchedChan = show.patch[chan].dim;
 			// console.log("patched chan: " + patchedChan);
 			// universe.update({[patchedChan]: percent_to_dmx(newvalue)});
 			api.send( 'updateUniverse', {patchedChan : patchedChan, newvalue : percent_to_dmx(newvalue)} );
@@ -699,7 +706,7 @@ function updateSlider(chan, instrument){
 	
 	//for each possible channel in that type, get the corresponding live dimmer value
 	$.each(show.types[instrument_type].channels, function(i, channel){
-		level_data[channel] = dmx_to_percent(live[instrument.dim + i - 1]);
+		level_data[channel] = dmx_to_percent(live[instrument.dim + i]);
 	});
 
 	// console.log("level_data: ");
@@ -818,7 +825,7 @@ function addSndCueRow(num,data){
 
 	var row = '<tr data-snd='+num+'>';
 	row += '<td class="t_sm">'+num+'</td>';
-	row += '<td class="t_sm"><span data-snd='+num+' class="glyphicon glyphicon-volume-up snd_file_play"></span></td>';
+	row += '<td class="t_sm"><span data-snd='+num+' class="glyphicon glyphicon-volume-up snd_file_play" title="Double-Click to play this sound."></span></td>';
 	row += '<td class="t_lng"><input class="t_lng" data-part="name" type="text" value="'+data.name+'"></td>';
 	row += '<td class="t_lng2"><input class="t_lng2" data-part="desc" type="text" value="'+data.desc+'"></td>';
 	row += '<td class="t_sm"><input class="t_sm" data-part="startvol" type="number" value="'+data.startvol+'" min="0" max="100"></td>';
@@ -899,7 +906,7 @@ function lxCueGo(time){
 		// for (var i = 0; i < show.channels; i++) {
 		$.each( show.patch, function( i, instrument ){
 			if(typeof levels[i] === 'undefined'){	//if there's no corresponding level data in the show file, set the basic value to 0
-				fullLevels[instrument.dim - 1] = 0;
+				fullLevels[instrument.dim] = 0;
 			}
 			else{//there IS level data for this channel in the patch, so update the fullLevels accordingly for each sub-dimmer-channel
 				$.each(levels[i], function(ch, level){
@@ -908,7 +915,7 @@ function lxCueGo(time){
 					
 					// console.log(" dimmer:" + instrument.dim + " dimmer_offset:" + dimmer_offset + " ch:" + ch + " level:" + level);
 					
-					fullLevels[instrument.dim + dimmer_offset - 1] = percent_to_dmx(level);	//offset by one to account for patch dmx numbers (1-512) vs. actual output array (0-511)
+					fullLevels[instrument.dim + dimmer_offset] = percent_to_dmx(level);	//offset by one to account for patch dmx numbers (1-512) vs. actual output array (0-511)
 
 				});
 			}
@@ -1659,6 +1666,44 @@ function statusNotice(text, type, permanent){
 		 }, 5000);
 	}
 }
+
+
+
+// ******** ABOUT SCREEN 
+function showAbout(){
+	$("#aboutScreen").show();
+	// visitor.event("easycue", "about_us").send();
+}
+
+function goDonate(){
+	api.send( 'openUrl', 'https://www.paypal.com/paypalme/drhoare' );
+	$("#aboutScreen").hide();
+	// visitor.event("easycue", "go_donate").send();
+}
+function goUrl(url){
+	api.send( 'openUrl', url);
+}
+
+
+function evaluating(){
+// visitor.event("easycue", "still_evaluating", function(){
+	$("#aboutScreen").hide();
+// }).send();
+}
+
+function thanks(){
+	settings.donated = true;
+	updateSettings();
+	// visitor.event("easycue", "donated_thanks").send();
+	$("#aboutScreen").hide();
+	bootbox.alert("Thank you so very much for your support! I hope you enjoy EasyCue. Please let me know if there's anything I can do to improve it. Cheers!");
+}
+// ****** END of ABOUT screen
+
+
+
+
+
 
 
 

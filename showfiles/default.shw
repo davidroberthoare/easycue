@@ -135,26 +135,83 @@
   "lx": [
     {
       "name": "LX 0",
-      "desc": "(default description 2)",
+      "desc": "(default description)",
       "in": 3,
       "out": 3,
       "af": "",
       "snd": "",
       "levels": {
         "0": {
-          "Intensity": 75,
-          "Red": 20,
-          "Green": 60,
-          "Blue": 80
+          "Intensity": 0
         },
         "1": {
-          "Intensity": 20,
-          "Red": 100,
-          "Green": 0,
-          "Blue": 50
+          "Intensity": 0
         },
         "2": {
-          "Intensity": 15
+          "Intensity": 0
+        },
+        "3": {
+          "Intensity": 0
+        },
+        "4": {
+          "Intensity": 0
+        },
+        "5": {
+          "Intensity": 0
+        },
+        "6": {
+          "Intensity": 0
+        },
+        "7": {
+          "Intensity": 0
+        },
+        "8": {
+          "Intensity": 0
+        },
+        "9": {
+          "Intensity": 0
+        },
+        "10": {
+          "Intensity": 0
+        },
+        "11": {
+          "Intensity": 0
+        },
+        "12": {
+          "Intensity": 0
+        },
+        "13": {
+          "Intensity": 0
+        },
+        "14": {
+          "Intensity": 0
+        },
+        "15": {
+          "Intensity": 0
+        },
+        "16": {
+          "Intensity": 0
+        },
+        "17": {
+          "Intensity": 0
+        },
+        "18": {
+          "Intensity": 0
+        },
+        "19": {
+          "Intensity": 0
+        },
+        "20": {
+          "Intensity": 0
+        },
+        "21": {
+          "Intensity": 0
+        },
+        "22": {
+          "Intensity": 0
+        },
+        "23": {
+          "Intensity": 0
         }
       }
     },
@@ -167,16 +224,10 @@
       "snd": "",
       "levels": {
         "0": {
-          "Intensity": 22,
-          "Red": 100,
-          "Green": 15,
-          "Blue": 65
+          "Intensity": 22
         },
         "1": {
-          "Intensity": 100,
-          "Red": 0,
-          "Green": 100,
-          "Blue": 10
+          "Intensity": 100
         },
         "2": {
           "Intensity": 88

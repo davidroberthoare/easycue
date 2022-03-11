@@ -1,0 +1,151 @@
+{
+  "info": {},
+  "channels": "2",
+  "patch": {
+    "0": {
+      "dim": 1,
+      "type": "Dice-11"
+    },
+    "1": {
+      "dim": 12,
+      "type": "Standard"
+    }
+  },
+  "types": {
+    "Standard": {
+      "description": "A standard 1 channel dimmer or device.",
+      "channels": [
+        "Intensity"
+      ]
+    },
+    "I-RGB": {
+      "description": "eg. LED with Intensity, Red, Green, Blue controls",
+      "channels": [
+        "Intensity",
+        "Red",
+        "Green",
+        "Blue"
+      ]
+    },
+    "Dice-11": {
+      "description": "Dice LED in 11-ch mode",
+      "channels": [
+        "Intensity",
+        "Red",
+        "Green",
+        "Blue",
+        "Amber",
+        "White",
+        "UV",
+        "Strobe Speed",
+        "Settings",
+        "SpeedAdj",
+        "DimmerCurve"
+      ]
+    }
+  },
+  "lx": [
+    {
+      "name": "LX 0",
+      "desc": "(default description 2)",
+      "in": 3,
+      "out": 3,
+      "af": "",
+      "snd": null,
+      "levels": {
+        "0": {
+          "Intensity": 77,
+          "Red": 100,
+          "Green": 24,
+          "Blue": 80,
+          "Amber": 0,
+          "White": 0,
+          "UV": 0,
+          "Strobe Speed": 0,
+          "Settings": 0,
+          "SpeedAdj": 0,
+          "DimmerCurve": 0
+        },
+        "1": {
+          "Intensity": 0
+        }
+      }
+    },
+    {
+      "name": "LX 1",
+      "desc": "",
+      "in": 3,
+      "out": 3,
+      "af": "",
+      "snd": null,
+      "levels": {
+        "0": {
+          "Intensity": 21,
+          "Red": 0,
+          "Green": 0,
+          "Blue": 80,
+          "Amber": 0,
+          "White": 0,
+          "UV": 0,
+          "Strobe Speed": 0,
+          "Settings": 0,
+          "SpeedAdj": 0,
+          "DimmerCurve": 0
+        },
+        "1": {
+          "Intensity": 69
+        }
+      }
+    },
+    {
+      "name": "LX 2",
+      "desc": "",
+      "in": 3,
+      "out": 3,
+      "af": "",
+      "snd": null,
+      "levels": {
+        "0": {
+          "Intensity": 48,
+          "Red": 0,
+          "Green": 93,
+          "Blue": 0,
+          "Amber": 0,
+          "White": 0,
+          "UV": 0,
+          "Strobe Speed": 0,
+          "Settings": 0,
+          "SpeedAdj": 0,
+          "DimmerCurve": 0
+        },
+        "1": {
+          "Intensity": 26
+        }
+      }
+    }
+  ],
+  "snd": [
+    {
+      "name": "SILENCE",
+      "desc": "(special cue for fading out others)",
+      "file": "sounds/silence.wav",
+      "startvol": 0,
+      "in": 0,
+      "vol": 0,
+      "hold": "",
+      "out": 0,
+      "endvol": 0
+    },
+    {
+      "name": "Test",
+      "desc": "",
+      "file": "sounds/test.mp3",
+      "startvol": 0,
+      "in": 0,
+      "vol": 100,
+      "hold": "",
+      "out": 3,
+      "endvol": 0
+    }
+  ]
+}

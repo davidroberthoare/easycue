@@ -1,5 +1,5 @@
 {
-  "name": "EasyCue",
+  "name": "easycue",
   "version": "0.1.0",
   "author": "David Hoare",
   "description": "Lighting console and sound playback",
@@ -21,7 +21,7 @@
   "productName": "EasyCue",
   "dependencies": {
     "dmx": "^0.2.5",
-    "electron-json-storage": "^4.5.0",
+    "electron-store": "^8.0.1",
     "universal-analytics": "^0.5.3"
   },
   "devDependencies": {
@@ -32,7 +32,7 @@
   "build": {
     "appId": "com.easycue.app",
     "copyright": "Copyright © year ${author}",
-    "win":{
+    "win": {
       "target": "portable"
     }
   }
