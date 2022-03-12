@@ -33,7 +33,18 @@
     "appId": "com.easycue.app",
     "copyright": "Copyright © year ${author}",
     "win": {
-      "target": "portable"
-    }
+      "target": "nsis",
+      "icon": "images/drhmedia.ico"
+    },
+    "extraResources": [
+      {
+        "from": "resources/showfiles",
+        "to": "showfiles"
+      }
+      ,{
+        "from": "resources/sounds",
+        "to": "sounds"
+      }
+    ]
   }
 }

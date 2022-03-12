@@ -3,6 +3,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
 const fs = require('fs');
 const utils = require('./utils.js');
 
+console.log("process.resourcesPath", process.resourcesPath);
 
 // SET OPTIONS STORAGE
 const Store = require('electron-store');
@@ -12,7 +13,7 @@ console.log("storing settings in: ", app.getPath('userData'));
 
 //global variable.
 var settings = {
-	defaultShowFile: app.getAppPath() + "/showfiles/default.shw",
+	defaultShowFile: process.resourcesPath + "/showfiles/default.shw",
 	// deviceType: "enttec-usb-dmx-pro",
 	deviceType: "null",
 	donated: "false",
@@ -270,13 +271,13 @@ const template = [
 					if (focusedWindow) focusedWindow.reload()
 				}
 			},
-			// {
-			//   label: 'Toggle Developer Tools',
-			//   accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-			//   click (item, focusedWindow) {
-			//     if (focusedWindow) focusedWindow.webContents.toggleDevTools()
-			//   }
-			// },
+			{
+			  label: 'Toggle Developer Tools',
+			  accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+			  click (item, focusedWindow) {
+			    if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+			  }
+			},
 			{
 				role: 'togglefullscreen'
 			}
@@ -403,7 +404,7 @@ function createWindow() {
 	mainWindow.loadFile('index.html')
 
 	// Open the DevTools.
-	mainWindow.webContents.openDevTools()
+	// mainWindow.webContents.openDevTools()
 
 	// 
 	mainWindow.webContents.send('pingRenderer', "MAIN is ready");

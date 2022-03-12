@@ -1,14 +1,14 @@
 {
   "info": {},
-  "channels": 48,
+  "channels": 24,
   "patch": {
     "0": {
-      "dim": 31,
-      "type": "I-RGB"
+      "dim": 1,
+      "type": "Standard"
     },
     "1": {
-      "dim": 36,
-      "type": "I-RGB"
+      "dim": 2,
+      "type": "Standard"
     },
     "2": {
       "dim": 3,
@@ -135,26 +135,20 @@
   "lx": [
     {
       "name": "LX 0",
-      "desc": "(default description 2)",
+      "desc": "(default description)",
       "in": 3,
       "out": 3,
       "af": "",
       "snd": "",
       "levels": {
         "0": {
-          "Intensity": 63,
-          "Red": 20,
-          "Green": 60,
-          "Blue": 80
+          "Intensity": 0
         },
         "1": {
-          "Intensity": 59,
-          "Red": 100,
-          "Green": 0,
-          "Blue": 50
+          "Intensity": 0
         },
         "2": {
-          "Intensity": 15
+          "Intensity": 0
         },
         "3": {
           "Intensity": 0
@@ -223,29 +217,20 @@
     },
     {
       "name": "LX 1",
-      "desc": null,
+      "desc": "(second cue)",
       "in": 3,
       "out": 3,
       "af": "",
       "snd": "",
       "levels": {
         "0": {
-          "Intensity": 83,
-          "Red": 100,
-          "Green": 15,
-          "Blue": 65
+          "Intensity": 22
         },
         "1": {
-          "Intensity": 49,
-          "Red": 31,
-          "Green": 100,
-          "Blue": 100
+          "Intensity": 100
         },
         "2": {
           "Intensity": 88
-        },
-        "3": {
-          "Intensity": 0
         }
       }
     }
@@ -254,7 +239,7 @@
     {
       "name": "SILENCE",
       "desc": "(special cue for fading out others)",
-      "file": "sounds/silence.wav",
+      "file": "resources/sounds/silence.wav",
       "startvol": 0,
       "in": 0,
       "vol": 0,
@@ -265,7 +250,18 @@
     {
       "name": "Test",
       "desc": "",
-      "file": "sounds/test.mp3",
+      "file": "resources/sounds/test.mp3",
+      "startvol": 0,
+      "in": 0,
+      "vol": 100,
+      "hold": "",
+      "out": 3,
+      "endvol": 0
+    },
+    {
+      "name": "THX",
+      "desc": "",
+      "file": "resources/sounds/thx.mp3",
       "startvol": 0,
       "in": 0,
       "vol": 100,

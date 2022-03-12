@@ -959,8 +959,19 @@ function sndCueGo(sqNum){
 	try {
 
 		var rnd = Math.floor(Math.random() * (3 - 1 + 1)) + 1;
+		var soundPath = show.snd[sqNum].file
+		//test if saved file starts with "/resources"
+		console.log("examining soundpath: ", soundPath, soundPath.indexOf("resources/"));
+
+		// if it's NOT in the development location (ie. installed somewhere) and it's got a resources path, adjust to be relative to install location
+		if(globals.resourcesPath.indexOf('P_SYNC')==-1 && soundPath.indexOf("resources/") == 0){
+			// soundPath.replace('resources', globals.resourcesPath);
+			soundPath = soundPath.replace('resources/', '../');
+		}
+		console.log("trying to open sound file: ", soundPath);
+		
 		var sound = new Howl({
-	    	src: [show.snd[sqNum].file],
+	    	src: soundPath,
 	    	volume: (show.snd[sqNum].in > 0) ? show.snd[sqNum].startvol / 100	: show.snd[sqNum].vol / 100 //use the startvol if there's a fade-in time, or just the main VOL if there isn't.  convert percent vol to 0 - 1.0
 	 	});
 	 	sound.idNum = sqNum;
